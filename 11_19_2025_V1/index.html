@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
+<title>Virtual Museum Viewer — Cuneiform Tablet</title>
+<style>
+  :root{
+    --bg:#0b0c0f;
+    --ui-bg: rgba(255,255,255,0.06);
+    --accent: #d7c49e;
+    --muted: rgba(255,255,255,0.6);
+    --glass: rgba(255,255,255,0.04);
+    --radius:12px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#050607,var(--bg));color:#fff;overflow:hidden}
+  #app{position:fixed;inset:0;display:flex;align-items:stretch;justify-content:stretch;height:100dvh;min-height:-webkit-fill-available}
+  canvas {display:block;width:100%;height:100%;outline:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+
+  /* Menu button (mobile) - controlled by JS but default hidden */
+  #menuButton {
+    position: fixed;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+    left: 10px;
+    z-index: 60;
+    padding: 10px 14px;
+    font-size: 15px;
+    border: none;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border-radius: 10px;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    display: none;
+  }
+
+  /* AR NOT COMPATIBLE */
+  .ar-warning {
+  position: fixed;
+  bottom: 8px;          /* distance from bottom */
+  right: 12px;           /* distance from right */
+  background: rgba(255,255,255,0.06);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(4px);
+  pointer-events: none;   /* so it doesn’t block clicks */
+  z-index: 50;
+}
+
+  /* UI container */
+  .ui {
+    position: absolute;
+    right: 18px;
+    top: 18px;
+    width: 320px;
+    max-width: calc(100vw - 36px);
+    background: linear-gradient(180deg,var(--ui-bg),rgba(255,255,255,0.02));
+    border-radius: var(--radius);
+    padding: 12px;
+    box-shadow: 0 8px 30px rgba(2,2,6,0.7);
+    backdrop-filter: blur(6px) saturate(120%);
+    border: 1px solid rgba(255,255,255,0.04);
+    z-index: 30;
+    padding-top: calc(12px + env(safe-area-inset-top, 0px));
+    padding-right: calc(12px + env(safe-area-inset-right, 0px));
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(12px + env(safe-area-inset-left, 0px));
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+  /* hidden state */
+  .ui.hidden { opacity: 0; transform: translateY(10px); pointer-events: none; }
+
+  .row {display:flex;gap:8px;align-items:center}
+  h1{font-size:16px;margin:0 0 8px 0;font-weight:600}
+  label{font-size:12px;color:var(--muted)}
+  .muted{color:var(--muted);font-size:13px}
+  button, .seg {
+    -webkit-tap-highlight-color: transparent;
+    background:transparent;border:1px solid rgba(255,255,255,0.06);
+    color: #fff;padding:8px 10px;border-radius:10px;font-weight:600;cursor:pointer;
+  }
+  button.primary{background:linear-gradient(90deg,var(--accent),#f0e7c9);color:#111;border:0}
+  .seg{font-size:13px}
+  .controls {display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .footer {position:absolute;left:18px;bottom:18px;background:var(--glass);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);backdrop-filter: blur(6px);color:var(--muted);font-size:13px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));}
+  .loadingBar {height:8px;background:rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;margin-top:8px}
+  .loadingFill {height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#f7ecd0)}
+  input[type=range]{width:100%}
+  .big {font-size:14px;padding:12px 14px}
+  .badge {display:inline-block;padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);font-size:12px}
+
+  /* Mobile tweaks - only visual; show menu button via JS */
+  @media (max-width:520px){
+    .ui{ left:12px; right:12px; top:auto; bottom:12px; width:auto; display:flex; flex-direction:column; gap:8px; }
+    .footer{display:none}
+    button, .seg { padding:12px 14px; font-size:15px; border-radius:14px; }
+    .big { font-size:16px; padding:14px 16px; }
+  }
+
+  /* Small adjustments to make sure UI doesn't go behind notch or side safe area in any orientation */
+  @supports(padding: env(safe-area-inset-left)) {
+    .ui { padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+    #menuButton { left: calc(10px + env(safe-area-inset-left)); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c" aria-label="3D model viewer"></canvas>
+  <div class="ar-warning">AR not compatible</div>
+
+  <!-- Menu button (mobile) -->
+  <button id="menuButton" aria-expanded="false" aria-controls="ui">Menu</button>
+  
+  <!-- Settings UI -->
+  <div class="ui" id="ui">
+    <h1 id="title">Cuneiform Tablet</h1>
+    <div class="muted" id="subtitle">Virtual exhibit — tap & drag to rotate, pinch to zoom</div>
+
+
+    <div style="margin-top:10px">
+      <label>Lighting Preset</label>
+      <div class="controls" style="margin-top:6px">
+        <button class="seg" id="presetMuseum">Museum</button>
+        <button class="seg" id="presetStudio">Studio</button>
+        <button class="seg" id="presetWarm">Warm</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Auto rotate</label>
+      <div class="controls" style="margin-top:6px">
+        <button class="seg" id="rotToggle">Toggle Rotate</button>
+        <button class="seg" id="resetBtn">Reset View</button>
+      </div>
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Scale</label>
+      <input id="scaleRange" type="range" min="0.3" max="3" step="0.01" value="1">
+    </div>
+
+    <div style="margin-top:12px">
+      <label>Actions</label>
+      <div class="controls" style="margin-top:6px">
+        <button class="primary big" id="screenshot">Screenshot</button>
+        <button class="seg big" id="downloadGLB">Download (GLB)</button>
+      </div>
+    </div>
+
+    <div class="loadingBar" aria-hidden="true" style="margin-top:12px">
+      <div class="loadingFill" id="loadingFill"></div>
+    </div>
+
+    <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center">
+      <div class="muted">Model: <span id="modelName">model.glb</span></div>
+      <div class="badge" id="version">v1.0</div>
+    </div>
+  </div>
+
+  <div class="footer">Tip: Use two fingers to orbit on mobile. Use <kbd>R</kbd> to reset view.</div>
+</div>
+
+<!-- Three.js modules from CDN -->
+<script type="module">
+
+// REPLACE existing smoothReset with this version
+function smoothReset(duration = 0.6) {
+  if (!currentModel) return;
+
+  // compute bounding box info (same logic as frameModelObject)
+  const box = new THREE.Box3().setFromObject(modelGroup);
+  if (box.isEmpty()) return;
+
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const minY = box.min.y;
+
+  // desired end transforms
+  const endModelPosition = new THREE.Vector3(-center.x, -minY, -center.z); // modelGroup final pos
+  const worldCenterY = center.y + endModelPosition.y;
+  const endTarget = new THREE.Vector3(0, worldCenterY, 0); // controls.target final
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = camera.fov * (Math.PI / 180);
+  const endCamZ = Math.max(Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.4, 0.4);
+  const endCamPos = new THREE.Vector3(0, worldCenterY + maxDim * 0.35, endCamZ);
+
+  // start states
+  const startCam = camera.position.clone();
+  const startTarget = controls.target.clone();
+  const startPos = modelGroup.position.clone();
+  const startModelY = currentModel.rotation.y;
+
+  // target model rotation (face front)
+  const endModelY = Math.PI;
+
+  // compute shortest angular delta for model rotation
+  let deltaY = endModelY - startModelY;
+  // normalize to (-PI, PI]
+  deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
+
+  const clock = new THREE.Clock();
+  let elapsed = 0;
+
+  function animate() {
+    const dt = clock.getDelta();
+    elapsed += dt;
+    const t = Math.min(elapsed / duration, 1);
+    // smoothstep easing
+    const s = t * t * (3 - 2 * t);
+
+    // interpolate camera position and controls target
+    camera.position.lerpVectors(startCam, endCamPos, s);
+    controls.target.lerpVectors(startTarget, endTarget, s);
+
+    // interpolate modelGroup position (so bottom sits on ground)
+    modelGroup.position.lerpVectors(startPos, endModelPosition, s);
+
+    // interpolate model rotation.y along shortest path
+    currentModel.rotation.y = startModelY + deltaY * s;
+
+    controls.update();
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      // final cleanup to avoid small numeric error
+      camera.position.copy(endCamPos);
+      controls.target.copy(endTarget);
+      modelGroup.position.copy(endModelPosition);
+      currentModel.rotation.y = endModelY;
+      controls.update();
+    }
+  }
+
+  animate();
+}
+
+
+/* === imports === */
+import * as THREE from "https://esm.sh/three@0.154.0";
+import { OrbitControls } from "https://esm.sh/three@0.154.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
+
+/* === renderer & scene === */
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+
+const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+function applyPixelRatio() {
+  const cap = isiOS ? 6 : 8;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+}
+applyPixelRatio();
+
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.domElement.style.touchAction = 'none';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0c);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.01, 200);
+camera.position.set(0, 0.6, 1.6);
+
+/* === lights === */
+const lights = {
+  key: new THREE.DirectionalLight(0xffffff, 1.0),
+  fill: new THREE.HemisphereLight(0xffffff, 0x444444, 0.4),
+  rim: new THREE.DirectionalLight(0xffffff, 0.4)
+};
+lights.key.position.set(0.6, 1.4, 1.0);
+lights.key.castShadow = true;
+lights.key.shadow.camera.near = 0.2;
+lights.key.shadow.camera.far = 5;
+lights.key.shadow.mapSize.set(2048,2048);
+lights.key.shadow.bias = -0.0003;
+lights.rim.position.set(-1.0, 0.9, -0.7);
+lights.rim.castShadow = false;
+scene.add(lights.key, lights.fill, lights.rim);
+
+/* === ground + contact shadow === */
+const groundMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9, metalness: 0.0 });
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(10,10), groundMat);
+ground.rotation.x = -Math.PI/2;
+ground.position.y = 0;
+ground.receiveShadow = true;
+scene.add(ground);
+
+function createContactShadow() {
+  const size = 512;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const grad = ctx.createRadialGradient(size/2,size/2,10,size/2,size/2,size/2);
+  grad.addColorStop(0,'rgba(0,0,0,0.45)');
+  grad.addColorStop(0.45,'rgba(0,0,0,0.22)');
+  grad.addColorStop(1,'rgba(0,0,0,0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,size,size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  tex.needsUpdate = true;
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0.85 });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(0.8,0.8), mat);
+  mesh.rotation.x = -Math.PI/2;
+  mesh.position.y = 0.001;
+  mesh.renderOrder = 1;
+  return mesh;
+}
+const contactShadow = createContactShadow();
+scene.add(contactShadow);
+
+/* === group + controls === */
+const modelGroup = new THREE.Group();
+scene.add(modelGroup);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 0.25;
+controls.maxDistance = 6;
+controls.target.set(0,0.12,0);
+if (window.innerWidth < 520) controls.screenSpacePanning = false;
+
+/* === auto-rotate (object) === */
+let autoRotate = false;
+let autoRotateSpeed = 12; // degrees/sec
+
+/* === loaders + UI === */
+const loadingFill = document.getElementById('loadingFill');
+function setLoading(p){ loadingFill.style.width = Math.round(p*100) + '%'; }
+
+const dracoLoader = new DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+const loader = new GLTFLoader(); loader.setDRACOLoader(dracoLoader);
+
+const MODEL_URL = 'the_map_of_the_world_tablet.glb';
+document.getElementById('modelName').textContent = MODEL_URL;
+
+/* === frame helper (safe) === */
+function frameModelObject(targetGroup) {
+  // measure with local transform reset to avoid stacking offsets
+  const prevPos = targetGroup.position.clone();
+  const prevRot = targetGroup.rotation.clone();
+
+  targetGroup.position.set(0,0,0);
+  targetGroup.rotation.set(0,0,0);
+
+  const box = new THREE.Box3().setFromObject(targetGroup);
+  if (box.isEmpty()) {
+    // restore
+    targetGroup.position.copy(prevPos);
+    targetGroup.rotation.copy(prevRot);
+    return;
+  }
+
+  const size = new THREE.Vector3(); box.getSize(size);
+  const center = new THREE.Vector3(); box.getCenter(center);
+  const minY = box.min.y;
+
+  // place model so its horizontal center is at origin and bottom sits at y=0
+  targetGroup.position.set(-center.x, -minY, -center.z);
+
+  // camera framing
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const fov = camera.fov * (Math.PI / 180);
+  let cameraDist = Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.4;
+  cameraDist = Math.max(cameraDist, 0.4);
+
+  const worldCenterY = center.y + targetGroup.position.y;
+  camera.position.set(0, worldCenterY + maxDim * 0.35, cameraDist);
+  controls.target.set(0, worldCenterY, 0);
+  controls.update();
+
+  // contact shadow
+  const footprint = Math.max(size.x, size.z) * 1.1;
+  contactShadow.scale.set(footprint, footprint, 1);
+  contactShadow.position.set(0, 0.001, 0);
+
+  // done (no restoration — we want the new position)
+}
+
+/* === load model === */
+let currentModel = null;
+setLoading(0.02);
+loader.load(MODEL_URL, (gltf) => {
+  modelGroup.clear();
+  currentModel = gltf.scene || gltf.scenes[0];
+
+  currentModel.traverse((c) => {
+    if (c.isMesh) {
+      c.castShadow = true;
+      c.receiveShadow = true;
+      if (c.material) {
+        c.material.metalness = c.material.metalness ?? 0.05;
+        c.material.roughness = c.material.roughness ?? 0.7;
+        c.material.color?.convertSRGBToLinear && c.material.color.convertSRGBToLinear();
+      }
+    }
+  });
+
+  // normalize
+  const box = new THREE.Box3().setFromObject(currentModel);
+  const size = new THREE.Vector3(); box.getSize(size);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  let scaleFactor = 1;
+  if (maxDim > 0) scaleFactor = 0.4 / maxDim;
+  currentModel.scale.setScalar(scaleFactor);
+  currentModel.userData.baseScale = scaleFactor;
+
+  modelGroup.add(currentModel);
+  // <<< ADD THIS LINE TO FACE THE FRONT >>>
+  currentModel.rotation.y = Math.PI;
+
+  // frame on ground
+  frameModelObject(modelGroup);
+
+  setLoading(1);
+  setTimeout(()=> { loadingFill.style.opacity = '0'; }, 400);
+}, (xhr) => {
+  if (xhr.total) setLoading((xhr.loaded / xhr.total) * 0.9);
+}, (err) => {
+  console.error('GLTF load error', err);
+  loadingFill.style.background = 'linear-gradient(90deg,#ff7a7a,#ffb6b6)';
+});
+
+/* === lighting presets === */
+const presets = {
+  museum() {
+    lights.key.intensity = 1.05;
+    lights.key.position.set(0.6, 1.4, 1.0);
+    lights.fill.intensity = 0.35;
+    lights.rim.intensity = 0.45;
+    scene.background.set(0x070708);
+    ground.material.color.set(0x0f0f10);
+  },
+  studio() {
+    lights.key.intensity = 1.8;
+    lights.key.position.set(0.8, 1.6, 0.6);
+    lights.fill.intensity = 0.15;
+    lights.rim.intensity = 0.9;
+    scene.background.set(0x0f1113);
+    ground.material.color.set(0x101112);
+  },
+  warm() {
+    lights.key.intensity = 1.0;
+    lights.key.color.set(0xfff1dc);
+    lights.fill.intensity = 0.3;
+    lights.rim.intensity = 0.35;
+    scene.background.set(0x0e0b08);
+    ground.material.color.set(0x0b0806);
+  }
+};
+
+/* === UI hookups === */
+document.getElementById('presetMuseum').addEventListener('click', ()=> { presets.museum(); });
+document.getElementById('presetStudio').addEventListener('click', ()=> { presets.studio(); });
+document.getElementById('presetWarm').addEventListener('click', ()=> { presets.warm(); });
+
+const rotToggle = document.getElementById('rotToggle');
+rotToggle.addEventListener('click', ()=> {
+  autoRotate = !autoRotate;
+  rotToggle.textContent = autoRotate ? 'Rotating: ON' : 'Toggle Rotate';
+});
+
+// REPLACE the resetBtn click handler with this
+document.getElementById('resetBtn').addEventListener('click', ()=> {
+  autoRotate = false;
+  rotToggle.textContent = 'Toggle Rotate';
+  // Smoothly move camera/target/model and rotate the model to face front
+  smoothReset(0.9); // duration in seconds
+});
+
+// scale slider
+const scaleRange = document.getElementById('scaleRange');
+scaleRange.addEventListener('input', (e) => {
+  const s = parseFloat(e.target.value);
+  if (!currentModel) return;
+  const base = currentModel.userData.baseScale || 1;
+  currentModel.scale.setScalar(s * base);
+
+  // keep camera fixed: adjust vertical position only so bottom sits at y=0
+  const box = new THREE.Box3().setFromObject(modelGroup);
+  if (!box.isEmpty()) {
+    const minY = box.min.y;
+    modelGroup.position.y -= minY;
+  }
+  const size = new THREE.Vector3(); box.getSize(size);
+  const footprint = Math.max(size.x, size.z) * 1.1;
+  contactShadow.scale.set(footprint, footprint, 1);
+});
+
+// screenshot / download
+document.getElementById('screenshot').addEventListener('click', ()=> {
+  renderer.render(scene, camera);
+  const data = renderer.domElement.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = data;
+  a.download = 'tablet-screenshot.png';
+  a.click();
+});
+document.getElementById('downloadGLB').addEventListener('click', ()=> {
+  const url = MODEL_URL;
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  a.click();
+});
+
+/* === render loop === */
+const clock = new THREE.Clock();
+function render() {
+  const dt = clock.getDelta();
+  if (autoRotate && currentModel) {
+    const ang = THREE.MathUtils.degToRad(autoRotateSpeed) * dt;
+    modelGroup.rotation.y += ang;
+  }
+  controls.update();
+  contactShadow.position.x = 0;
+  contactShadow.position.z = 0;
+  renderer.render(scene, camera);
+  requestAnimationFrame(render);
+}
+render();
+
+/* === robust mobile/landscape UI handling === */
+const menuButton = document.getElementById('menuButton');
+const ui = document.getElementById('ui');
+
+// Debounce helper
+function debounce(fn, wait=80) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(()=> fn(...args), wait);
+  };
+}
+
+// Decide "small mobile UI" by using the minimum viewport dimension.
+// This treats phones in landscape (short height) as small devices too.
+function isSmallScreen() {
+  const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const minDim = Math.min(vw, vh);
+  return minDim <= 520; // same threshold as before but on the smaller dimension
+}
+
+function updateUIVisibilityOnResize() {
+  const small = isSmallScreen();
+
+  if (small) {
+    // mobile: hide UI by default, show menu button
+    ui.classList.add('hidden');
+    menuButton.style.display = 'block';
+    menuButton.setAttribute('aria-expanded', 'false');
+  } else {
+    // larger screens: show UI, hide menu button
+    ui.classList.remove('hidden');
+    menuButton.style.display = 'none';
+    menuButton.setAttribute('aria-expanded', 'true');
+  }
+}
+
+// Debounced version used on events
+const updateUIVisibilityOnResizeDebounced = debounce(() => {
+  updateUIVisibilityOnResize();
+}, 90);
+
+// Run immediately on load
+updateUIVisibilityOnResize();
+
+// Attach events: visualViewport (if available) + window
+window.addEventListener('resize', updateUIVisibilityOnResizeDebounced);
+window.addEventListener('orientationchange', () => setTimeout(updateUIVisibilityOnResizeDebounced, 120));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', updateUIVisibilityOnResizeDebounced);
+  window.visualViewport.addEventListener('scroll', updateUIVisibilityOnResizeDebounced);
+}
+
+// Menu toggle
+menuButton.addEventListener('click', () => {
+  const hidden = ui.classList.toggle('hidden');
+  menuButton.setAttribute('aria-expanded', (!hidden).toString());
+});
+
+/* === resize renderer === */
+function resizeRenderer() {
+  const width = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+  const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  applyPixelRatio();
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', resizeRenderer);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', resizeRenderer);
+  window.visualViewport.addEventListener('scroll', resizeRenderer);
+}
+window.addEventListener('orientationchange', () => setTimeout(resizeRenderer, 120));
+
+/* === initial preset === */
+presets.museum();
+console.log('Viewer ready — model path:', MODEL_URL);
+</script>
+</body>
+</html>
