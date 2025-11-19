@@ -173,7 +173,11 @@
 function smoothReset(duration = 0.6) {
   if (!currentModel) return;
 
-  // compute bounding box info (same logic as frameModelObject)
+  // store current camera & target
+  const startCam = camera.position.clone();
+  const startTarget = controls.target.clone();
+
+  // desired camera & target positions
   const box = new THREE.Box3().setFromObject(modelGroup);
   if (box.isEmpty()) return;
 
@@ -181,28 +185,13 @@ function smoothReset(duration = 0.6) {
   const center = new THREE.Vector3(); box.getCenter(center);
   const minY = box.min.y;
 
-  // desired end transforms
-  const endModelPosition = new THREE.Vector3(-center.x, -minY, -center.z); // modelGroup final pos
-  const worldCenterY = center.y + endModelPosition.y;
-  const endTarget = new THREE.Vector3(0, worldCenterY, 0); // controls.target final
+  const worldCenterY = center.y - minY;
   const maxDim = Math.max(size.x, size.y, size.z);
   const fov = camera.fov * (Math.PI / 180);
-  const endCamZ = Math.max(Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.4, 0.4);
-  const endCamPos = new THREE.Vector3(0, worldCenterY + maxDim * 0.35, endCamZ);
+  const camZ = Math.max(Math.abs(maxDim / (2 * Math.tan(fov / 2))) * 1.4, 0.4);
 
-  // start states
-  const startCam = camera.position.clone();
-  const startTarget = controls.target.clone();
-  const startPos = modelGroup.position.clone();
-  const startModelY = currentModel.rotation.y;
-
-  // target model rotation (face front)
-  const endModelY = Math.PI;
-
-  // compute shortest angular delta for model rotation
-  let deltaY = endModelY - startModelY;
-  // normalize to (-PI, PI]
-  deltaY = ((deltaY + Math.PI) % (2 * Math.PI)) - Math.PI;
+  const endCamPos = new THREE.Vector3(0, worldCenterY + maxDim * 0.35, camZ);
+  const endTarget = new THREE.Vector3(0, worldCenterY, 0);
 
   const clock = new THREE.Clock();
   let elapsed = 0;
@@ -211,35 +200,25 @@ function smoothReset(duration = 0.6) {
     const dt = clock.getDelta();
     elapsed += dt;
     const t = Math.min(elapsed / duration, 1);
-    // smoothstep easing
-    const s = t * t * (3 - 2 * t);
+    const s = t * t * (3 - 2 * t); // smoothstep easing
 
-    // interpolate camera position and controls target
+    // interpolate camera & target only
     camera.position.lerpVectors(startCam, endCamPos, s);
     controls.target.lerpVectors(startTarget, endTarget, s);
-
-    // interpolate modelGroup position (so bottom sits on ground)
-    modelGroup.position.lerpVectors(startPos, endModelPosition, s);
-
-    // interpolate model rotation.y along shortest path
-    currentModel.rotation.y = startModelY + deltaY * s;
-
     controls.update();
 
-    if (t < 1) {
-      requestAnimationFrame(animate);
-    } else {
-      // final cleanup to avoid small numeric error
+    if (t < 1) requestAnimationFrame(animate);
+    else {
+      // final values
       camera.position.copy(endCamPos);
       controls.target.copy(endTarget);
-      modelGroup.position.copy(endModelPosition);
-      currentModel.rotation.y = endModelY;
       controls.update();
     }
   }
 
   animate();
 }
+
 
 
 /* === imports === */
