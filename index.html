@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-<title>Museum Website Viewer</title>
+<title>Museum Artifact Viewer</title>
 <style>
   :root{
     --bg:#0b0c0f;
@@ -319,7 +319,6 @@ function setLoading(p){ loadingFill.style.width = Math.round(p*100) + '%'; }
 
 const dracoLoader = new DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
 const loader = new GLTFLoader(); loader.setDRACOLoader(dracoLoader);
-
 const MODEL_URL = 'emoji_with_glasses.glb';
 document.getElementById('modelName').textContent = MODEL_URL;
 
