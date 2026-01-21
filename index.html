@@ -233,7 +233,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false
 
 const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 function applyPixelRatio() {
-  const cap = isiOS ? 6 : 8;
+  const cap = isiOS ? 10 : 20;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
 }
 applyPixelRatio();
@@ -320,7 +320,7 @@ function setLoading(p){ loadingFill.style.width = Math.round(p*100) + '%'; }
 const dracoLoader = new DRACOLoader(); dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
 const loader = new GLTFLoader(); loader.setDRACOLoader(dracoLoader);
 
-const MODEL_URL = 'the_map_of_the_world_tablet.glb';
+const MODEL_URL = 'emoji_with_glasses.glb';
 document.getElementById('modelName').textContent = MODEL_URL;
 
 /* === frame helper (safe) === */
@@ -449,7 +449,7 @@ rotToggle.addEventListener('click', ()=> {
   rotToggle.textContent = autoRotate ? 'Rotating: ON' : 'Toggle Rotate';
 });
 
-// REPLACE the resetBtn click handler with this
+// resetBtn click handler
 document.getElementById('resetBtn').addEventListener('click', ()=> {
   autoRotate = false;
   rotToggle.textContent = 'Toggle Rotate';
