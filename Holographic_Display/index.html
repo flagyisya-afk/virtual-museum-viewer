@@ -1,81 +1,48 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<title>Holographic Artifact Viewer</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  background: black;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-}
-
-/* Cross layout */
-.position {
-  position: absolute;
-  width: 40vmin;
-  height: 40vmin;
-  perspective: 800px;
-}
-
-canvas {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-/* TOP */
-.pos-top {
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-/* BOTTOM (flipped) */
-.pos-bottom {
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%) rotate(180deg);
-}
-
-/* LEFT */
-.pos-left {
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
-}
-
-/* RIGHT */
-.pos-right {
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-}
-</style>
-</head>
-
-<body>
-
-<div class="position pos-top"><canvas id="view-top"></canvas></div>
-<div class="position pos-bottom"><canvas id="view-bottom"></canvas></div>
-<div class="position pos-left"><canvas id="view-left"></canvas></div>
-<div class="position pos-right"><canvas id="view-right"></canvas></div>
-
 <script type="module">
 import * as THREE from "https://esm.sh/three@0.154.0";
 import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
 
-/* === Scene === */
+/* ===============================
+   CONTROLLER SYNC
+================================ */
+const CHANNEL = "pandoras-hologram";
+let sharedState = {
+  rotX: 0,
+  rotY: 0,
+  scale: 1,
+  preset: "museum"
+};
+
+const channel = "BroadcastChannel" in window
+  ? new BroadcastChannel(CHANNEL)
+  : null;
+
+if (channel) {
+  channel.onmessage = e => {
+    sharedState = e.data;
+  };
+}
+
+window.addEventListener("storage", e => {
+  if (e.key === "pandoras-hologram") {
+    sharedState = JSON.parse(e.newValue);
+  }
+});
+
+// pull last known state on load
+const saved = localStorage.getItem("pandoras-hologram");
+if (saved) sharedState = JSON.parse(saved);
+
+/* ===============================
+   SCENE
+================================ */
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
-/* === Lighting (museum-balanced, hologram-safe) === */
+/* ===============================
+   LIGHTING
+================================ */
 const key = new THREE.DirectionalLight(0xffffff, 1.0);
 key.position.set(0.6, 1.4, 1.0);
 
@@ -85,15 +52,20 @@ rim.position.set(-1.0, 0.9, -0.7);
 
 scene.add(key, fill, rim);
 
-/* === Model Group === */
+/* ===============================
+   MODEL GROUP
+================================ */
 const modelGroup = new THREE.Group();
 scene.add(modelGroup);
 
 let currentModel = null;
+let baseScale = 1;
 let cameraDist = 1;
 let centerY = 0;
 
-/* === Load GLB === */
+/* ===============================
+   LOAD MODEL
+================================ */
 const MODEL_URL = "../the_map_of_the_world_tablet.glb";
 
 const draco = new DRACOLoader();
@@ -113,29 +85,31 @@ loader.load(MODEL_URL, gltf => {
     }
   });
 
-  // Normalize & center
   const box = new THREE.Box3().setFromObject(currentModel);
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
   box.getSize(size);
   box.getCenter(center);
 
-  const scale = 0.45 / Math.max(size.x, size.y, size.z);
-  currentModel.scale.setScalar(scale);
+  baseScale = 0.45 / Math.max(size.x, size.y, size.z);
+  currentModel.scale.setScalar(baseScale);
+
   currentModel.position.set(
-    -center.x * scale,
-    -center.y * scale,
-    -center.z * scale
+    -center.x * baseScale,
+    -center.y * baseScale,
+    -center.z * baseScale
   );
 
   currentModel.rotation.y = Math.PI;
   modelGroup.add(currentModel);
 
-  cameraDist = Math.max(size.length() * scale * 1.2, 0.6);
+  cameraDist = Math.max(size.length() * baseScale * 1.2, 0.6);
   centerY = 0;
 });
 
-/* === Cameras === */
+/* ===============================
+   CAMERAS
+================================ */
 function createView(canvas) {
   const cam = new THREE.PerspectiveCamera(50, 1, 0.01, 200);
   const renderer = new THREE.WebGLRenderer({
@@ -155,25 +129,42 @@ const views = {
   right: createView(document.getElementById("view-right")),
 };
 
-/* === Mouse-controlled rotation === */
-let rotX = 0, rotY = 0;
-let targetX = 0, targetY = 0;
+/* ===============================
+   PRESET MIRRORING
+================================ */
+function applyPreset(name) {
+  if (name === "studio") {
+    key.intensity = 1.8;
+    fill.intensity = 0.15;
+    rim.intensity = 0.9;
+  }
+  if (name === "museum") {
+    key.intensity = 1.05;
+    fill.intensity = 0.35;
+    rim.intensity = 0.45;
+  }
+  if (name === "warm") {
+    key.intensity = 1.0;
+    key.color.set(0xfff1dc);
+    fill.intensity = 0.3;
+    rim.intensity = 0.35;
+  }
+}
 
-document.addEventListener("mousemove", e => {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-
-  targetY = (e.clientX - cx) * 0.002;
-  targetX = (e.clientY - cy) * 0.002;
-});
-
-/* === Render loop === */
+/* ===============================
+   RENDER LOOP
+================================ */
 function render() {
-  rotX += (targetX - rotX) * 0.08;
-  rotY += (targetY - rotY) * 0.08;
+  if (currentModel) {
+    modelGroup.rotation.x = sharedState.rotX || 0;
+    modelGroup.rotation.y = sharedState.rotY || 0;
 
-  modelGroup.rotation.x = rotX;
-  modelGroup.rotation.y = rotY;
+    currentModel.scale.setScalar(
+      baseScale * (sharedState.scale || 1)
+    );
+
+    applyPreset(sharedState.preset);
+  }
 
   const poses = {
     top:    [ 0, centerY,  cameraDist],
@@ -182,9 +173,10 @@ function render() {
     right:  [ cameraDist, centerY, 0],
   };
 
-  for (const key in views) {
-    const { cam, renderer } = views[key];
-    const [x,y,z] = poses[key];
+  for (const k in views) {
+    const { cam, renderer } = views[k];
+    const [x,y,z] = poses[k];
+
     cam.position.set(x,y,z);
     cam.lookAt(0, centerY, 0);
 
@@ -197,10 +189,7 @@ function render() {
 
   requestAnimationFrame(render);
 }
+
 render();
-
-console.log("Holographic viewer active");
+console.log("Holographic display synced & live");
 </script>
-
-</body>
-</html>
