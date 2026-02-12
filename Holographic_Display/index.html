@@ -93,6 +93,10 @@ let currentModel = null;
 let cameraDist = 1;
 let centerY = 0;
 
+const pivot = new THREE.Object3D();
+modelGroup.add(pivot);
+
+
 /*GLB*/
 const MODEL_URL = "../the_map_of_the_world_tablet.glb";
 
@@ -102,38 +106,49 @@ const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
 loader.load(MODEL_URL, gltf => {
-  currentModel = gltf.scene;
 
-  currentModel.traverse(m => {
-    if (m.isMesh) {
-      m.castShadow = false;
-      m.receiveShadow = false;
-      m.material.roughness ??= 0.7;
-      m.material.metalness ??= 0.05;
+  // Use the full GLTF scene root
+  const root = gltf.scene;
+
+  root.traverse(obj => {
+    if (obj.isMesh) {
+      obj.castShadow = false;
+      obj.receiveShadow = false;
+      obj.material.roughness ??= 0.7;
+      obj.material.metalness ??= 0.05;
     }
   });
 
-  // Normalize & center
-  const box = new THREE.Box3().setFromObject(currentModel);
+  // --- SCALE FIRST ---
+
+  const box = new THREE.Box3().setFromObject(root);
   const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
   box.getSize(size);
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 0.45 / maxDim;
+  root.scale.setScalar(scale);
+
+  // Update matrices after scaling
+  root.updateMatrixWorld(true);
+
+  // --- NOW FIND TRUE CENTER AFTER SCALE ---
+
+  box.setFromObject(root);
+  const center = new THREE.Vector3();
   box.getCenter(center);
 
-  const scale = 0.45 / Math.max(size.x, size.y, size.z);
-  currentModel.scale.setScalar(scale);
-  currentModel.position.set(
-    -center.x * scale,
-    -center.y * scale,
-    -center.z * scale
-  );
+  // Move ENTIRE ROOT so its center is at origin
+  root.position.sub(center);
 
-  currentModel.rotation.y = Math.PI;
-  modelGroup.add(currentModel);
+  // Add to pivot
+  pivot.add(root);
 
   cameraDist = Math.max(size.length() * scale * 1.2, 0.6);
   centerY = 0;
+
 });
+
 
 /*cameras*/
 function createView(canvas) {
@@ -172,8 +187,9 @@ function render() {
   rotX += (targetX - rotX) * 0.08;
   rotY += (targetY - rotY) * 0.08;
 
-  modelGroup.rotation.x = rotX;
-  modelGroup.rotation.y = rotY;
+  pivot.rotation.x = rotX;
+  pivot.rotation.y = rotY;
+
 
   const poses = {
     top:    [ 0, centerY,  cameraDist],
