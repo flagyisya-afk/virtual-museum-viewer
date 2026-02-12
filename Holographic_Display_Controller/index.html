@@ -2,29 +2,68 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover" />
-<title>Holographic Display Controller</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Museum Artifact Viewer — Controller</title>
 
-<!-- ⬇️ YOUR ORIGINAL STYLES (UNCHANGED) -->
 <style>
-/* === SAME CSS AS YOUR OG VIEWER — UNTOUCHED === */
 :root{
   --bg:#0b0c0f;
-  --ui-bg: rgba(255,255,255,0.06);
-  --accent: #d7c49e;
-  --muted: rgba(255,255,255,0.6);
-  --glass: rgba(255,255,255,0.04);
+  --glass:rgba(255,255,255,0.06);
+  --muted:rgba(255,255,255,0.65);
+  --accent:#d7c49e;
   --radius:12px;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
-html,body{height:100%;margin:0;background:#050607;color:#fff;overflow:hidden}
-#app{position:fixed;inset:0}
-canvas{width:100%;height:100%;display:block;touch-action:none}
-.ui{position:absolute;right:18px;top:18px;width:320px;background:var(--ui-bg);padding:12px;border-radius:12px;backdrop-filter:blur(6px)}
-label{font-size:12px;color:var(--muted)}
-button{padding:8px 10px;border-radius:10px;background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.1)}
-button.primary{background:var(--accent);color:#111;border:0}
-.controls{display:flex;gap:6px;flex-wrap:wrap}
+html,body{
+  margin:0;
+  height:100%;
+  background:linear-gradient(180deg,#0b0c0f,#12141b);
+  color:#fff;
+  overflow:hidden;
+}
+#app{
+  position:fixed;
+  inset:0;
+}
+canvas{
+  width:100%;
+  height:100%;
+  display:block;
+  touch-action:none;
+}
+
+/* UI */
+.ui{
+  position:fixed;
+  left:16px;
+  bottom:16px;
+  width:min(340px, calc(100vw - 32px));
+  background:var(--glass);
+  backdrop-filter:blur(14px);
+  border-radius:var(--radius);
+  padding:14px;
+  box-shadow:0 20px 50px rgba(0,0,0,.45);
+}
+.ui h1{
+  font-size:1.05rem;
+  margin:0 0 2px 0;
+}
+.ui .muted{
+  font-size:.8rem;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+.row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+button{
+  flex:1;
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  border:0;
+  border-radius:8px;
+  padding:8px;
+  cursor:pointer;
+}
+button:hover{background:rgba(255,255,255,.14)}
 input[type=range]{width:100%}
 </style>
 </head>
@@ -33,116 +72,193 @@ input[type=range]{width:100%}
 <div id="app">
   <canvas id="c"></canvas>
 
-  <!-- UI (UNCHANGED STRUCTURE) -->
   <div class="ui">
-    <h1>Artifact Controller</h1>
+    <h1>Cuneiform Tablet</h1>
+    <div class="muted">Drag to rotate · Pinch to zoom</div>
 
-    <label>Lighting Preset</label>
-    <div class="controls">
+    <div class="row">
       <button id="presetMuseum">Museum</button>
       <button id="presetStudio">Studio</button>
       <button id="presetWarm">Warm</button>
     </div>
 
-    <label style="margin-top:10px">Scale</label>
+    <div class="row">
+      <button id="rotToggle">Toggle Rotate</button>
+      <button id="resetBtn">Reset View</button>
+    </div>
+
+    <label class="muted">Scale</label>
     <input id="scaleRange" type="range" min="0.3" max="3" step="0.01" value="1">
   </div>
 </div>
 
 <script type="module">
-/* =======================
-   BROADCAST SETUP
-======================= */
-const CHANNEL = "pandoras-hologram";
-const channel = "BroadcastChannel" in window ? new BroadcastChannel(CHANNEL) : null;
+import * as THREE from "https://unpkg.com/three@0.161.0/build/three.module.js";
+import { OrbitControls } from "https://unpkg.com/three@0.161.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://unpkg.com/three@0.161.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://unpkg.com/three@0.161.0/examples/jsm/loaders/DRACOLoader.js";
 
-const sharedState = {
-  rotX: 0,
-  rotY: 0,
-  scale: 1,
-  preset: "museum"
-};
+/* ---------------- SYNC CHANNEL ---------------- */
+const holoChannel = new BroadcastChannel("holographic-sync");
 
-function publish() {
-  channel?.postMessage(sharedState);
-  localStorage.setItem("pandoras-hologram", JSON.stringify(sharedState));
-}
-
-/* =======================
-   THREE SETUP (OG STYLE)
-======================= */
-import * as THREE from "https://esm.sh/three@0.154.0";
-import { OrbitControls } from "https://esm.sh/three@0.154.0/examples/jsm/controls/OrbitControls.js";
-import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
-
+/* ---------------- CORE ---------------- */
 const canvas = document.getElementById("c");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
-renderer.setSize(window.innerWidth, window.innerHeight);
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a0c);
+scene.background = new THREE.Color(0x0b0c0f);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.01, 100);
-camera.position.set(0,0.6,1.6);
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.01, 200);
+camera.position.set(0,1.2,2.4);
 
 const controls = new OrbitControls(camera, canvas);
 controls.enableDamping = true;
+controls.minDistance = 0.8;
+controls.maxDistance = 6;
 
-const lights = {
-  key: new THREE.DirectionalLight(0xffffff,1),
-  fill: new THREE.HemisphereLight(0xffffff,0x444444,0.4),
-  rim: new THREE.DirectionalLight(0xffffff,0.4)
-};
-lights.key.position.set(0.6,1.4,1);
-scene.add(lights.key, lights.fill, lights.rim);
+/* ---------------- LIGHTING ---------------- */
+const key = new THREE.DirectionalLight(0xffffff,1.0);
+key.position.set(2,4,2);
+scene.add(key);
 
+const fill = new THREE.HemisphereLight(0xffffff,0x222233,0.35);
+scene.add(fill);
+
+const rim = new THREE.DirectionalLight(0xffffff,0.45);
+rim.position.set(-2,2,-2);
+scene.add(rim);
+
+/* ---------------- MODEL ---------------- */
 const modelGroup = new THREE.Group();
 scene.add(modelGroup);
 
+let currentModel = null;
+let autoRotate = false;
+let currentPreset = "museum";
+
+const draco = new DRACOLoader();
+draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+
 const loader = new GLTFLoader();
-let model;
+loader.setDRACOLoader(draco);
 
-loader.load("/the_map_of_the_world_tablet.glb", gltf=>{
-  model = gltf.scene;
-  model.traverse(m=>m.isMesh&&(m.castShadow=true));
-  modelGroup.add(model);
-});
+loader.load(
+  "/Holographic_Display_Controller/the_map_of_the_world_tablet.glb",
+  gltf => {
+    currentModel = gltf.scene;
 
-/* =======================
-   PRESETS
-======================= */
-const presets = {
-  museum(){ lights.key.intensity=1; },
-  studio(){ lights.key.intensity=1.8; },
-  warm(){ lights.key.intensity=1; lights.key.color.set(0xfff1dc); }
-};
+    currentModel.traverse(o=>{
+      if(o.isMesh){
+        o.castShadow = o.receiveShadow = true;
+        if(o.material?.map){
+          o.material.map.colorSpace = THREE.SRGBColorSpace;
+        }
+      }
+    });
 
-presetMuseum.onclick=()=>{presets.museum();sharedState.preset="museum";publish();}
-presetStudio.onclick=()=>{presets.studio();sharedState.preset="studio";publish();}
-presetWarm.onclick=()=>{presets.warm();sharedState.preset="warm";publish();}
+    modelGroup.add(currentModel);
 
-scaleRange.oninput=e=>{
-  sharedState.scale=parseFloat(e.target.value);
-  if(model) model.scale.setScalar(sharedState.scale);
-  publish();
-};
+    // FACE FRONT (matches original viewer)
+    currentModel.rotation.y = Math.PI;
 
-controls.addEventListener("change",()=>{
-  sharedState.rotX=modelGroup.rotation.x;
-  sharedState.rotY=modelGroup.rotation.y;
-  publish();
-});
+    // FRAME THE GROUP, NOT THE MODEL
+    frameModel(modelGroup);
+  },
+  undefined,
+  err => console.error("GLB load failed", err)
+);
 
-/* =======================
-   LOOP
-======================= */
-function animate(){
+/* ---------------- FRAMING ---------------- */
+function frameModel(obj){
+  const box = new THREE.Box3().setFromObject(obj);
+  const size = box.getSize(new THREE.Vector3()).length();
+  const center = box.getCenter(new THREE.Vector3());
+
+  obj.position.sub(center);
+  obj.position.y -= box.min.y;
+
+  const dist = size / Math.tan(THREE.MathUtils.degToRad(camera.fov/2));
+  camera.position.set(0, size*0.4, dist*0.9);
+  controls.target.set(0, size*0.35, 0);
   controls.update();
-  renderer.render(scene,camera);
-  requestAnimationFrame(animate);
 }
-animate();
+
+/* ---------------- PRESETS ---------------- */
+const presets = {
+  museum(){
+    key.intensity = 1.0;
+    fill.intensity = 0.35;
+    rim.intensity = 0.45;
+  },
+  studio(){
+    key.intensity = 1.8;
+    fill.intensity = 0.15;
+    rim.intensity = 0.9;
+  },
+  warm(){
+    key.intensity = 1.0;
+    key.color.set(0xfff1dc);
+  }
+};
+
+/* ---------------- UI ---------------- */
+presetMuseum.onclick = ()=>{presets.museum();currentPreset="museum";};
+presetStudio.onclick  = ()=>{presets.studio();currentPreset="studio";};
+presetWarm.onclick    = ()=>{presets.warm();currentPreset="warm";};
+
+rotToggle.onclick = ()=> autoRotate = !autoRotate;
+
+resetBtn.onclick = ()=>{
+  modelGroup.rotation.set(0,0,0);
+  frameModel(currentModel);
+};
+
+scaleRange.oninput = e=>{
+  if(currentModel)
+    currentModel.scale.setScalar(parseFloat(e.target.value));
+};
+
+/* ---------------- SYNC OUT ---------------- */
+function broadcastState(){
+  if(!currentModel) return;
+  holoChannel.postMessage({
+    rot:{
+      x:modelGroup.rotation.x,
+      y:modelGroup.rotation.y,
+      z:modelGroup.rotation.z
+    },
+    scale: currentModel.scale.x,
+    autoRotate,
+    preset: currentPreset
+  });
+}
+
+/* ---------------- LOOP ---------------- */
+const clock = new THREE.Clock();
+function render(){
+  const dt = clock.getDelta();
+
+  if(autoRotate && currentModel){
+    modelGroup.rotation.y += dt * 0.6;
+  }
+
+  controls.update();
+  broadcastState();
+
+  renderer.render(scene,camera);
+  requestAnimationFrame(render);
+}
+render();
+
+/* ---------------- RESIZE ---------------- */
+addEventListener("resize",()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
 </script>
 </body>
 </html>
