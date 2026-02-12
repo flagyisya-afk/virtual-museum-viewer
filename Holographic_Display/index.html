@@ -70,6 +70,10 @@ canvas {
 import * as THREE from "https://esm.sh/three@0.154.0";
 import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
+import { CSS2DRenderer, CSS2DObject } from "https://esm.sh/three@0.154.0/examples/jsm/renderers/CSS2DRenderer.js";
+
+
+
 
 /*scene*/
 const scene = new THREE.Scene();
@@ -89,13 +93,11 @@ scene.add(key, fill, rim);
 const modelGroup = new THREE.Group();
 scene.add(modelGroup);
 
-let currentModel = null;
 let cameraDist = 1;
 let centerY = 0;
 
 const pivot = new THREE.Object3D();
 modelGroup.add(pivot);
-
 
 /*GLB*/
 const MODEL_URL = "../the_map_of_the_world_tablet.glb";
@@ -106,8 +108,6 @@ const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
 loader.load(MODEL_URL, gltf => {
-
-  // Use the full GLTF scene root
   const root = gltf.scene;
 
   root.traverse(obj => {
@@ -120,7 +120,6 @@ loader.load(MODEL_URL, gltf => {
   });
 
   // --- SCALE FIRST ---
-
   const box = new THREE.Box3().setFromObject(root);
   const size = new THREE.Vector3();
   box.getSize(size);
@@ -128,38 +127,35 @@ loader.load(MODEL_URL, gltf => {
   const maxDim = Math.max(size.x, size.y, size.z);
   const scale = 0.45 / maxDim;
   root.scale.setScalar(scale);
-
-  // Update matrices after scaling
   root.updateMatrixWorld(true);
 
-  // --- NOW FIND TRUE CENTER AFTER SCALE ---
-
+  // --- CENTER ---
   box.setFromObject(root);
   const center = new THREE.Vector3();
   box.getCenter(center);
-
-  // Move ENTIRE ROOT so its center is at origin
   root.position.sub(center);
 
-  // Add to pivot
   pivot.add(root);
 
   cameraDist = Math.max(size.length() * scale * 1.2, 0.6);
   centerY = 0;
-
 });
+
 
 
 /*cameras*/
 function createView(canvas) {
   const cam = new THREE.PerspectiveCamera(50, 1, 0.01, 200);
+
   const renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true,
     alpha: false
   });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 4));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+
   return { cam, renderer };
 }
 
@@ -170,26 +166,26 @@ const views = {
   right: createView(document.getElementById("view-right")),
 };
 
-/*input*/
+/* rotation state */
 let rotX = 0, rotY = 0;
 let targetX = 0, targetY = 0;
 
-document.addEventListener("mousemove", e => {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
+/* BroadcastChannel connection */
+const channel = new BroadcastChannel("hologram-control");
 
-  targetY = (e.clientX - cx) * 0.002;
-  targetX = (e.clientY - cy) * 0.002;
-});
+channel.onmessage = (event) => {
+  const data = event.data;
+  if (!data) return;
+
+  targetX = data.rotX ?? 0;
+  targetY = data.rotY ?? 0;
+};
+
 
 /*renderloop*/
 function render() {
   rotX += (targetX - rotX) * 0.08;
   rotY += (targetY - rotY) * 0.08;
-
-  pivot.rotation.x = rotX;
-  pivot.rotation.y = rotY;
-
 
   const poses = {
     top:    [ 0, centerY,  cameraDist],
@@ -200,21 +196,38 @@ function render() {
 
   for (const key in views) {
     const { cam, renderer } = views[key];
-    const [x,y,z] = poses[key];
-    cam.position.set(x,y,z);
+    const [x, y, z] = poses[key];
+    cam.position.set(x, y, z);
     cam.lookAt(0, centerY, 0);
+
+    // Map rotation per camera for Pepper's ghost effect
+    if (key === "top" || key === "bottom") {
+      pivot.rotation.x = rotX;
+      pivot.rotation.y = rotY;
+      pivot.rotation.z = 0;
+    } else if (key === "left") {
+      pivot.rotation.z = rotX;
+      pivot.rotation.y = rotY;
+      pivot.rotation.x = 0;
+    } else if (key === "right") {
+      pivot.rotation.z = -rotX;
+      pivot.rotation.y = rotY;
+      pivot.rotation.x = 0;
+    }
 
     const r = renderer.domElement.getBoundingClientRect();
     cam.aspect = r.width / r.height;
     cam.updateProjectionMatrix();
-    renderer.setSize(r.width, r.height, false);
+    renderer.setSize(r.width, r.height, true);
     renderer.render(scene, cam);
   }
 
   requestAnimationFrame(render);
 }
-render();
 
+
+
+render();
 console.log("Holographic viewer active");
 </script>
 
