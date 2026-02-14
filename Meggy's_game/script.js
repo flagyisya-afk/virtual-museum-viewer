@@ -850,14 +850,72 @@
 
   function showFinalConfession(terminal){
     const confession = [
-      'To my most wonderful person,',
+      '--------------------------------------------------------------------- To my most wonderful person,',
       '',
       'These 8 hearts represent 8 reasons why you mean everything to me.',
       'But honestly, I could find 8,000 more.',
+      'And even that still wouldn’t be enough.',
       '',
       'You are my adventure, my laugh, my dream come true.',
       'Every moment with you feels like breaking free from the ordinary,',
       'Finding magic in the simplest things.',
+      '',
+      'You are the calm in my chaos,',
+      'The steady hand when I feel unsure,',
+      'The voice that turns my worst days into something manageable.',
+      '',
+      'You make the world softer just by being in it.',
+      'You make love feel easy, natural, safe.',
+      'You make distance feel smaller.',
+      '',
+      'I love the way you see the world.',
+      'I love the way you care so deeply.',
+      'I love how you can be strong and gentle at the same time.',
+      '',
+      'With you, I laugh louder.',
+      'With you, I dream bigger.',
+      'With you, I feel understood in a way I never have before.',
+      '',
+      'You’re my favorite thought during the day,',
+      'And my favorite person to imagine my future with at night.',
+      '',
+      'You’ve shown me what it means to be patient.',
+      'To be kind.',
+      'To choose someone, again and again.',
+      '',
+      'Even the quiet moments with you mean everything to me.',
+      'Even the simple “good mornings” and “good nights” feel special.',
+      '',
+      'You’re not just someone I love.',
+      'You’re someone I admire.',
+      'Someone I respect.',
+      'Someone I am endlessly proud of.',
+      '',
+      'I love your smile.',
+      'I love your laugh.',
+      'I love the way your eyes light up when you’re excited.',
+      '',
+      'I love how you make me feel safe being completely myself.',
+      'I love how you can make me laugh even when I don’t want to.',
+      'I REALLY love your little stompies.',
+      '',
+      'When I think about the future,',
+      'I don’t just see plans or places.',
+      'I see you.',
+      'Standing next to me.',
+      'Choosing me like I choose you.',
+      '',
+      'If I had to do it all over again,',
+      'Every version of my life,',
+      'Every timeline,',
+      'I would still find my way to you.',
+      '',
+      'You are my comfort.',
+      'You are my hope.',
+      'You are my favorite chapter, and my favorite ending.',
+      '',
+      'And no matter how many hearts I show on this screen,',
+      'They’ll never fully capture what you mean to me.',
       '',
       'So I ask you now, with all my heart:',
       ''
@@ -872,11 +930,11 @@
         terminal.appendChild(line);
         terminal.scrollTop = terminal.scrollHeight;
         idx++;
-        setTimeout(typeConfession, 300);
+        setTimeout(typeConfession, 3000);
       } else {
         setTimeout(()=>{
           showFinalQuestion(terminal);
-        }, 500);
+        }, 5000);
       }
     }
     typeConfession();
@@ -1327,13 +1385,26 @@
     // Auto-reply after 1-2 seconds
     setTimeout(() => {
       const replies = [
-        'That\'s sweet 💕',
-        'I love you too 😊',
-        'You make me happy',
-        'Always thinking about you',
-        'Can\'t wait to see you',
-        'You\'re my favorite person',
-        'Forever yours 💝'
+        'You mean the world to me 🌎💕',
+        'My heart is yours 💓',
+        'You’re my sunshine ☀️',
+        'I’m so lucky to have you 🍀',
+        'Every day is better with you',
+        'You make my heart race 💗',
+        'Thinking about your smile 😊',
+        'You’re my safe place 🤍',
+        'I adore you so much 💞',
+        'Life’s sweeter with you in it 🍓',
+        'You’re my favorite notification 📱💕',
+        'I’d choose you every time',
+        'You’re my person 💘',
+        'My heart does a little flip for you',
+        'I miss you already 🥺',
+        'You’re my happy place 🌸',
+        'Forever and always 💍',
+        'You’re my dream come true ✨',
+        'You make everything brighter 🌟',
+        'All I need is you 💕'
       ];
       const reply = replies[Math.floor(Math.random() * replies.length)];
       const replyTime = new Date().toLocaleTimeString();
