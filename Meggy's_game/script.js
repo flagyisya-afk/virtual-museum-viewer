@@ -17,7 +17,7 @@
     "You're beautiful inside and out.",
     "Thank you for being you.",
     "Let's make more memories.",
-    "Will you be mine? ❤️"
+    "I thought of you when I made this. 💖 And I think it would be really funny to watch you try and read all this text. So here is the entire alphabet, upper and lowercase. A B C D E F G H I J K L M N O P Q R S T U V W X Y Z a b c d e f g h i j k l m n o p q r s t u v w x y z :)"
   ];
 
   let found = 0;
