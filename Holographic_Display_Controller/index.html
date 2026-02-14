@@ -1,48 +1,248 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Holographic Controller</title>
+
 <style>
 html, body {
   margin:0;
   height:100%;
   background:black;
-  touch-action:none;
+  overflow:hidden;
+}
+
+canvas {
+  width:100%;
+  height:100%;
+  display:block;
 }
 </style>
 </head>
 
 <body>
 
-<script>
+<canvas id="viewer"></canvas>
+
+<script type="module">
+
+import * as THREE from "https://esm.sh/three@0.154.0";
+import { OrbitControls } from "https://esm.sh/three@0.154.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
+
+
+/* ===============================
+   Broadcast Channel
+================================ */
+
 const channel = new BroadcastChannel("hologram-control");
 
-function sendRotation(x, y) {
-  channel.postMessage({ rotX: x, rotY: y });
+function sendRotation(x, y)
+{
+  channel.postMessage({
+    rotX: x,
+    rotY: y
+  });
 }
 
-document.addEventListener("touchmove", e => {
+
+/* ===============================
+   Renderer / Scene / Camera
+================================ */
+
+const canvas = document.getElementById("viewer");
+
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias:true
+});
+
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 3));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(
+  50,
+  window.innerWidth/window.innerHeight,
+  0.01,
+  200
+);
+
+camera.position.set(0,0.6,1.6);
+
+
+/* ===============================
+   Lighting (IDENTICAL to display)
+================================ */
+
+const key = new THREE.DirectionalLight(0xffffff, 1.0);
+key.position.set(0.6, 1.4, 1.0);
+
+const fill = new THREE.HemisphereLight(0xffffff, 0x222222, 0.35);
+
+const rim = new THREE.DirectionalLight(0xffffff, 0.45);
+rim.position.set(-1.0, 0.9, -0.7);
+
+scene.add(key, fill, rim);
+
+
+/* ===============================
+   Model Group + Pivot
+================================ */
+
+const modelGroup = new THREE.Group();
+scene.add(modelGroup);
+
+const pivot = new THREE.Object3D();
+modelGroup.add(pivot);
+
+
+/* ===============================
+   Controls (local preview only)
+================================ */
+
+const controls = new OrbitControls(camera, renderer.domElement);
+
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.enablePan = false;
+
+
+/* ===============================
+   Load Model (IDENTICAL PIPELINE)
+================================ */
+
+const MODEL_URL = "../the_map_of_the_world_tablet.glb";
+
+const draco = new DRACOLoader();
+draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+
+const loader = new GLTFLoader();
+loader.setDRACOLoader(draco);
+
+let cameraDist = 1;
+let centerY = 0;
+
+loader.load(MODEL_URL, gltf =>
+{
+  const root = gltf.scene;
+
+  root.traverse(obj =>
+  {
+    if(obj.isMesh)
+    {
+      obj.material.roughness ??= 0.7;
+      obj.material.metalness ??= 0.05;
+    }
+  });
+
+  /* SCALE */
+  const box = new THREE.Box3().setFromObject(root);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const scale = 0.45 / maxDim;
+
+  root.scale.setScalar(scale);
+  root.updateMatrixWorld(true);
+
+  /* CENTER */
+  box.setFromObject(root);
+
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+
+  root.position.sub(center);
+
+  pivot.add(root);
+
+  cameraDist = Math.max(size.length()*scale*1.2, 0.6);
+  centerY = 0;
+
+});
+
+
+/* ===============================
+   Rotation state
+================================ */
+
+let rotX = 0;
+let rotY = 0;
+
+let targetX = 0;
+let targetY = 0;
+
+
+/* ===============================
+   Mouse / Touch Input
+================================ */
+
+function handleInput(clientX, clientY)
+{
+  const cx = window.innerWidth/2;
+  const cy = window.innerHeight/2;
+
+  targetX = (clientY - cy) * 0.002;
+  targetY = (clientX - cx) * 0.002;
+
+  sendRotation(targetX, targetY);
+}
+
+document.addEventListener("mousemove", e =>
+{
+  handleInput(e.clientX, e.clientY);
+});
+
+document.addEventListener("touchmove", e =>
+{
   const t = e.touches[0];
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
-
-  const rotX = (t.clientY - cy) * 0.002;
-  const rotY = (t.clientX - cx) * 0.002;
-
-  sendRotation(rotX, rotY);
+  handleInput(t.clientX, t.clientY);
 });
 
-document.addEventListener("mousemove", e => {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight / 2;
 
-  const rotX = (e.clientY - cy) * 0.002;
-  const rotY = (e.clientX - cx) * 0.002;
+/* ===============================
+   Resize
+================================ */
 
-  sendRotation(rotX, rotY);
+window.addEventListener("resize", () =>
+{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+
+/* ===============================
+   Render Loop
+================================ */
+
+function render()
+{
+  rotX += (targetX - rotX) * 0.08;
+  rotY += (targetY - rotY) * 0.08;
+
+  pivot.rotation.x = rotX;
+  pivot.rotation.y = rotY;
+
+  controls.update();
+
+  renderer.render(scene, camera);
+
+  requestAnimationFrame(render);
+}
+
+render();
+
+
+console.log("Controller viewer active");
+
 </script>
 
 </body>
