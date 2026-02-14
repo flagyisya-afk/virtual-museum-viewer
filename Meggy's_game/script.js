@@ -218,7 +218,7 @@
     setTimeout(()=>{
       popup.classList.add('fade');
       setTimeout(()=>{popup.remove()},1500);
-    },200);
+    },700);
   }
 
   // Matrix terminal effect
