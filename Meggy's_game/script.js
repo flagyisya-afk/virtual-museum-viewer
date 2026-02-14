@@ -204,7 +204,7 @@
   function showPopup(target, text){
     const popup = document.createElement('div');
     popup.className = 'popup';
-    const h = document.createElement('h4'); h.innerText = 'Surprise';
+    const h = document.createElement('h4'); h.innerText = 'You found a heart! :)';
     const p = document.createElement('p'); p.innerText = text;
     popup.appendChild(h); popup.appendChild(p);
     document.body.appendChild(popup);
