@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Meggy's Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="loader" class="loader">
+    <div class="loader-card">
+      <h1>Ready?</h1>
+      <p>I seemed to have dropped my hearts! Press Play &lt;3 help out clumsy Patito</p>
+      <button id="playBtn">Play &lt;3</button>
+    </div>
+  </div>
+
+  <div id="overlay" class="hidden">
+    <div id="win">
+      <h1>Happy Valentine's Day!</h1>
+      <p id="win-msg">You found all the hearts ❤️</p>
+      <button id="replay">Play Again</button>
+    </div>
+    <canvas id="confetti"></canvas>
+  </div>
+
+  <header>
+    <h1>Explore the Hidden World :)</h1>
+    <p>Click all the hearts! — and maybe reveal something pretty cool! - I reccomend full-screen mode for best experience.  </p>
+    <div id="counter">Found 0 / 8</div>
+  </header>
+
+  <main>
+    <div id="world" aria-live="polite" class="world-hidden"></div>
+  </main>
+
+  <!-- Sound effects (hidden) -->
+  <audio id="typeSound" preload="auto"></audio>
+  <audio id="clickSound" preload="auto"></audio>
+  <audio id="bgMusic" preload="auto" loop></audio>
+
+  <script src="script.js"></script>
+</body>
+</html>
