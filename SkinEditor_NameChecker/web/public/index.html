@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Skin Editor + Name Checker</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Skin Editor + Name Checker</h1>
+      <p>Collaborative Minecraft skin editing with live username checks and AI generation.</p>
+    </header>
+
+    <main>
+      <section class="panel">
+        <h2>Collaborate</h2>
+        <div class="row">
+          <input id="roomIdInput" type="text" placeholder="Room ID (e.g. museum-team-skin)" maxlength="64" />
+          <button id="joinRoomButton">Join Room</button>
+        </div>
+        <p id="roomStatus" class="muted">Not connected to a room.</p>
+      </section>
+
+      <section class="panel editor-layout">
+        <div>
+          <h2>Skin Editor</h2>
+          <div class="toolbar">
+            <label>
+              Tool
+              <select id="toolSelect">
+                <option value="pen">Pen</option>
+                <option value="erase">Erase</option>
+                <option value="fill">Fill</option>
+              </select>
+            </label>
+            <label>
+              Color
+              <input id="colorPicker" type="color" value="#7e57ff" />
+            </label>
+            <button id="clearButton">Clear</button>
+          </div>
+          <canvas id="skinCanvas" width="64" height="64" aria-label="Minecraft skin texture editor"></canvas>
+          <p class="muted">Draw directly on the 64x64 texture. Changes sync in real time inside your room.</p>
+        </div>
+
+        <div>
+          <h2>Import / Export</h2>
+          <div class="stack">
+            <label class="file-label">
+              <span>Import PNG</span>
+              <input id="importInput" type="file" accept="image/png" />
+            </label>
+            <button id="exportButton">Export PNG</button>
+          </div>
+
+          <h2>AI Skin Maker</h2>
+          <div class="stack">
+            <textarea id="aiPrompt" rows="4" placeholder="Describe a skin style, e.g. neon cyberpunk knight with gold trim"></textarea>
+            <button id="generateButton">Generate AI Skin</button>
+            <p id="aiStatus" class="muted">No generation yet.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Name Checker</h2>
+        <div class="row">
+          <input id="nameInput" type="text" maxlength="16" placeholder="Minecraft username" />
+          <button id="checkNameButton">Check Name</button>
+        </div>
+        <p id="nameResult" class="muted">Enter a name to check availability.</p>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="./app.js" type="module"></script>
+  </body>
+</html>

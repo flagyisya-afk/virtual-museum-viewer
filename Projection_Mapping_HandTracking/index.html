@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>Papyrus Projection Mapping — Hand Light</title>
+<style>
+  :root {
+    --bg: #050607;
+    --panel: rgba(255,255,255,0.08);
+    --text: #f6f1e9;
+    --muted: rgba(246,241,233,0.72);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+
+  html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+  }
+
+  #app {
+    position: fixed;
+    inset: 0;
+  }
+
+  canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .panel {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 20;
+    background: var(--panel);
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 12px;
+    padding: 12px;
+    width: min(380px, calc(100vw - 24px));
+    backdrop-filter: blur(6px);
+  }
+
+  .title {
+    margin: 0;
+    font-size: 15px;
+  }
+
+  .muted {
+    margin: 6px 0 10px;
+    color: var(--muted);
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.24);
+    border-radius: 10px;
+    background: rgba(0,0,0,0.35);
+    color: var(--text);
+    padding: 9px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  button.primary {
+    border: none;
+    background: linear-gradient(90deg, #e0cc9a, #f5e8c9);
+    color: #1d1304;
+  }
+
+  .status {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  #cameraPreview {
+    position: fixed;
+    right: 12px;
+    bottom: 12px;
+    width: 220px;
+    max-width: 35vw;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.2);
+    opacity: 0.75;
+    z-index: 15;
+    transform: scaleX(-1);
+    background: #000;
+  }
+
+  @media (max-width: 700px) {
+    #cameraPreview {
+      width: 140px;
+      max-width: 40vw;
+    }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+</div>
+
+<div class="panel">
+  <h1 class="title">Papyrus Projection Mapping (Hand-Tracked Light)</h1>
+  <p class="muted">Move your hand in front of the camera. The fingertip drives a focused light that reveals details on the papyrus model.</p>
+  <div class="row">
+    <button id="startBtn" class="primary">Start Camera + Tracking</button>
+    <button id="stopBtn">Stop Tracking</button>
+  </div>
+  <div class="status" id="status">Status: idle</div>
+</div>
+
+<video id="cameraPreview" autoplay playsinline muted></video>
+
+<script type="module">
+import * as THREE from "https://esm.sh/three@0.154.0";
+import { OrbitControls } from "https://esm.sh/three@0.154.0/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
+import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+const canvas = document.getElementById("view");
+const statusEl = document.getElementById("status");
+const video = document.getElementById("cameraPreview");
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const drawingBufferSize = new THREE.Vector2();
+renderer.getDrawingBufferSize(drawingBufferSize);
+const sceneTarget = new THREE.WebGLRenderTarget(drawingBufferSize.x, drawingBufferSize.y);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.01, 40);
+camera.position.set(0, 0, 1.05);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 0, 0);
+controls.enableRotate = false;
+controls.enablePan = false;
+controls.enableZoom = false;
+
+const ambient = new THREE.AmbientLight(0xffffff, 0.24);
+const baseFill = new THREE.DirectionalLight(0xfff3dc, 0.3);
+baseFill.position.set(0.1, 0.25, 0.9);
+baseFill.castShadow = false;
+scene.add(ambient, baseFill);
+
+const revealLight = new THREE.SpotLight(0xffefc9, 2.4, 1.4, Math.PI / 8, 0.42, 1.0);
+revealLight.position.set(0, 0.2, 0.4);
+revealLight.castShadow = false;
+revealLight.target.position.set(0, 0, -0.25);
+scene.add(revealLight, revealLight.target);
+
+const papyrusGroup = new THREE.Group();
+scene.add(papyrusGroup);
+
+const raycaster = new THREE.Raycaster();
+const handNdc = new THREE.Vector2(0, 0);
+const lensCenter = new THREE.Vector2(0.5, 0.5);
+const lensTarget = new THREE.Vector2(0.5, 0.5);
+let lensVisible = false;
+let lensRadiusTarget = 0.17;
+let lensZoomTarget = 2.8;
+let freezeLens = false;
+let wasPinch = false;
+let lastFreezeToggle = 0;
+let gestureLabel = "none";
+const tempNormal = new THREE.Vector3();
+const tempLightPos = new THREE.Vector3();
+const tempTargetPos = new THREE.Vector3();
+
+let papyrusRoot = null;
+const papyrusHitMeshes = [];
+
+const postScene = new THREE.Scene();
+const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const postMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    tDiffuse: { value: sceneTarget.texture },
+    uCenter: { value: lensCenter.clone() },
+    uRadius: { value: 0.17 },
+    uZoom: { value: 2.8 },
+    uSoftness: { value: 0.028 },
+    uEnabled: { value: 0.0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = vec4(position.xy, 0.0, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 uCenter;
+    uniform float uRadius;
+    uniform float uZoom;
+    uniform float uSoftness;
+    uniform float uEnabled;
+    varying vec2 vUv;
+
+    void main() {
+      vec2 delta = vUv - uCenter;
+      float dist = length(delta);
+      float lensMask = (1.0 - smoothstep(uRadius - uSoftness, uRadius, dist)) * uEnabled;
+
+      vec2 zoomUv = uCenter + delta / uZoom;
+      zoomUv = clamp(zoomUv, vec2(0.0), vec2(1.0));
+
+      vec4 baseColor = texture2D(tDiffuse, vUv);
+      vec4 zoomColor = texture2D(tDiffuse, zoomUv);
+      vec4 color = mix(baseColor, zoomColor, lensMask);
+
+      float ringOuter = smoothstep(uRadius + 0.006, uRadius, dist);
+      float ringInner = smoothstep(uRadius, uRadius - 0.006, dist);
+      float ring = max(ringOuter - ringInner, 0.0) * uEnabled;
+      color.rgb = mix(color.rgb, vec3(0.98, 0.9, 0.72), ring * 0.45);
+
+      gl_FragColor = color;
+    }
+  `,
+  depthTest: false,
+  depthWrite: false
+});
+const postQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), postMaterial);
+postScene.add(postQuad);
+
+function setStatus(text) {
+  statusEl.textContent = `Status: ${text}`;
+}
+
+function landmarkDistance(lm, a, b) {
+  const dx = lm[a].x - lm[b].x;
+  const dy = lm[a].y - lm[b].y;
+  return Math.hypot(dx, dy);
+}
+
+function isFingerExtended(lm, tipIndex, pipIndex) {
+  return lm[tipIndex].y < lm[pipIndex].y - 0.015;
+}
+
+function detectGestures(lm) {
+  const pinchDistance = landmarkDistance(lm, 4, 8);
+  const pinch = pinchDistance < 0.06;
+
+  const indexExtended = isFingerExtended(lm, 8, 6);
+  const middleExtended = isFingerExtended(lm, 12, 10);
+  const ringExtended = isFingerExtended(lm, 16, 14);
+  const pinkyExtended = isFingerExtended(lm, 20, 18);
+
+  const openPalm = indexExtended && middleExtended && ringExtended && pinkyExtended;
+  const fist = !indexExtended && !middleExtended && !ringExtended && !pinkyExtended;
+
+  return { pinch, pinchDistance, openPalm, fist };
+}
+
+function addFallbackPapyrus() {
+  const geom = new THREE.PlaneGeometry(0.75, 0.5, 1, 1);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x8f6f45,
+    roughness: 0.92,
+    metalness: 0.0,
+    side: THREE.DoubleSide
+  });
+  const mesh = new THREE.Mesh(geom, mat);
+  mesh.rotation.x = -0.1;
+  mesh.position.y = 0;
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  papyrusGroup.add(mesh);
+  papyrusHitMeshes.push(mesh);
+}
+
+function framePapyrus() {
+  const box = new THREE.Box3().setFromObject(papyrusGroup);
+  if (box.isEmpty()) return;
+
+  const size = new THREE.Vector3();
+  const center = new THREE.Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  papyrusGroup.position.sub(center);
+  papyrusGroup.position.set(0, 0, -0.25);
+
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const dist = Math.max(maxDim * 1.6, 0.8);
+  camera.position.set(0, 0, dist);
+  controls.target.set(0, 0, -0.25);
+  controls.update();
+}
+
+function loadPapyrusModel() {
+  const draco = new DRACOLoader();
+  draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+
+  const loader = new GLTFLoader();
+  loader.setDRACOLoader(draco);
+
+  const modelUrl = "../byzantine-medieval_papyrus.glb";
+  setStatus("loading papyrus model...");
+
+  loader.load(
+    modelUrl,
+    (gltf) => {
+      papyrusRoot = gltf.scene;
+      papyrusRoot.rotation.set(0, 0, 0);
+      papyrusRoot.traverse((obj) => {
+        if (!obj.isMesh) return;
+        obj.castShadow = true;
+        obj.receiveShadow = true;
+        obj.material = obj.material.clone();
+        obj.material.roughness = obj.material.roughness ?? 0.88;
+        obj.material.metalness = obj.material.metalness ?? 0.0;
+        papyrusHitMeshes.push(obj);
+      });
+
+      const box = new THREE.Box3().setFromObject(papyrusRoot);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z) || 1;
+      const scale = 0.78 / maxDim;
+      papyrusRoot.scale.setScalar(scale);
+      papyrusGroup.add(papyrusRoot);
+
+      framePapyrus();
+      setStatus("papyrus loaded — tracking idle");
+    },
+    undefined,
+    (err) => {
+      console.error(err);
+      addFallbackPapyrus();
+      framePapyrus();
+      setStatus("papyrus fallback loaded (model failed)");
+    }
+  );
+}
+
+let handLandmarker = null;
+let mediaStream = null;
+let trackingActive = false;
+let lastVideoTime = -1;
+
+async function setupHandTracking() {
+  if (handLandmarker) return handLandmarker;
+
+  setStatus("loading hand tracker...");
+
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+
+  handLandmarker = await HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+    },
+    runningMode: "VIDEO",
+    numHands: 1
+  });
+
+  return handLandmarker;
+}
+
+async function startTracking() {
+  if (trackingActive) return;
+
+  try {
+    await setupHandTracking();
+
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    });
+
+    video.srcObject = mediaStream;
+    await video.play();
+
+    trackingActive = true;
+    setStatus("tracking active");
+  } catch (error) {
+    console.error(error);
+    setStatus("camera/tracking failed — check permissions");
+  }
+}
+
+function stopTracking() {
+  trackingActive = false;
+  lensVisible = false;
+  postMaterial.uniforms.uEnabled.value = 0.0;
+  freezeLens = false;
+  gestureLabel = "none";
+  wasPinch = false;
+
+  if (mediaStream) {
+    mediaStream.getTracks().forEach((track) => track.stop());
+    mediaStream = null;
+  }
+
+  video.srcObject = null;
+  setStatus("tracking stopped");
+}
+
+function updateHandPoint() {
+  if (!trackingActive || !handLandmarker || video.readyState < 2) return;
+
+  const now = performance.now();
+  if (video.currentTime === lastVideoTime) return;
+  lastVideoTime = video.currentTime;
+
+  const result = handLandmarker.detectForVideo(video, now);
+  const landmarks = result.landmarks?.[0];
+  if (!landmarks) {
+    lensVisible = false;
+    gestureLabel = "no hand";
+    return;
+  }
+
+  const gestures = detectGestures(landmarks);
+  if (gestures.pinch && !wasPinch && now - lastFreezeToggle > 450) {
+    freezeLens = !freezeLens;
+    lastFreezeToggle = now;
+  }
+  wasPinch = gestures.pinch;
+
+  if (gestures.openPalm) {
+    lensRadiusTarget = 0.22;
+    gestureLabel = "open palm (wide lens)";
+  } else if (gestures.fist) {
+    lensRadiusTarget = 0.12;
+    gestureLabel = "fist (small lens)";
+  } else {
+    lensRadiusTarget = 0.17;
+    gestureLabel = "point";
+  }
+
+  if (freezeLens) {
+    if (gestures.pinch) {
+      gestureLabel = "freeze toggled";
+    } else {
+      gestureLabel = "frozen (pinch to unfreeze)";
+    }
+    lensVisible = true;
+    return;
+  }
+
+  const tip = landmarks[8];
+  const mirroredX = 1 - tip.x;
+  handNdc.set(mirroredX * 2 - 1, -(tip.y * 2 - 1));
+  raycaster.setFromCamera(handNdc, camera);
+
+  const intersects = raycaster.intersectObjects(papyrusHitMeshes, true);
+  if (!intersects.length) {
+    lensVisible = false;
+    gestureLabel = "hand off papyrus";
+    return;
+  }
+
+  const hit = intersects[0];
+  lensVisible = true;
+  if (gestures.pinch) {
+    gestureLabel = "freeze toggled";
+  }
+
+  const projected = hit.point.clone().project(camera);
+  lensTarget.set(
+    THREE.MathUtils.clamp((projected.x + 1) * 0.5, 0, 1),
+    THREE.MathUtils.clamp((projected.y + 1) * 0.5, 0, 1)
+  );
+
+  tempNormal.copy(hit.face?.normal || new THREE.Vector3(0, 0, 1));
+  tempNormal.transformDirection(hit.object.matrixWorld);
+
+  tempLightPos.copy(hit.point).addScaledVector(tempNormal, 0.18);
+  tempTargetPos.copy(hit.point).addScaledVector(tempNormal, 0.01);
+
+  revealLight.position.lerp(tempLightPos, 0.28);
+  revealLight.target.position.lerp(tempTargetPos, 0.28);
+}
+
+function updateLensUniforms() {
+  if (!lensVisible) {
+    postMaterial.uniforms.uEnabled.value = 0.0;
+    return;
+  }
+
+  lensCenter.lerp(lensTarget, 0.24);
+  postMaterial.uniforms.uCenter.value.copy(lensCenter);
+  postMaterial.uniforms.uRadius.value = THREE.MathUtils.lerp(
+    postMaterial.uniforms.uRadius.value,
+    lensRadiusTarget,
+    0.2
+  );
+  postMaterial.uniforms.uZoom.value = THREE.MathUtils.lerp(
+    postMaterial.uniforms.uZoom.value,
+    lensZoomTarget,
+    0.24
+  );
+  postMaterial.uniforms.uEnabled.value = 1.0;
+}
+
+startBtn.addEventListener("click", startTracking);
+stopBtn.addEventListener("click", stopTracking);
+
+window.addEventListener("resize", () => {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  renderer.setSize(width, height, false);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+  renderer.getDrawingBufferSize(drawingBufferSize);
+  sceneTarget.setSize(drawingBufferSize.x, drawingBufferSize.y);
+});
+
+window.addEventListener("beforeunload", stopTracking);
+
+loadPapyrusModel();
+
+const clock = new THREE.Clock();
+function render() {
+  clock.getDelta();
+  updateHandPoint();
+  updateLensUniforms();
+  if (trackingActive) {
+    setStatus(`tracking active — ${gestureLabel}`);
+  }
+
+  controls.update();
+
+  renderer.setRenderTarget(sceneTarget);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene, postCamera);
+
+  requestAnimationFrame(render);
+}
+render();
+</script>
+</body>
+</html>

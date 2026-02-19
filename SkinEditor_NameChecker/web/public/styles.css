@@ -1,0 +1,171 @@
+:root {
+  color-scheme: dark;
+  --bg: #11131a;
+  --panel: #1a1f2d;
+  --panel-border: #2a3145;
+  --text: #eff2ff;
+  --muted: #a9b2d0;
+  --accent: #7e57ff;
+  --danger: #d85757;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, Segoe UI, Arial, sans-serif;
+  color: var(--text);
+  background: linear-gradient(160deg, #11131a, #151a26);
+  min-height: 100vh;
+}
+
+header,
+main {
+  width: min(1100px, 92vw);
+  margin: 0 auto;
+}
+
+header {
+  padding: 1.2rem 0 0.2rem;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 1.7rem;
+}
+
+header p {
+  margin-top: 0.4rem;
+  color: var(--muted);
+}
+
+main {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem 0 2rem;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.stack {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.editor-layout {
+  display: grid;
+  grid-template-columns: 1fr 290px;
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+input,
+select,
+textarea,
+button {
+  border: 1px solid var(--panel-border);
+  background: #0f131f;
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  flex: 1;
+}
+
+button {
+  cursor: pointer;
+  background: var(--accent);
+  border-color: #6e49e2;
+  color: #f7f3ff;
+  font-weight: 600;
+}
+
+button:hover {
+  filter: brightness(1.07);
+}
+
+.toolbar {
+  margin: 0.6rem 0;
+  display: flex;
+  align-items: end;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.toolbar label {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+#skinCanvas {
+  width: min(100%, 520px);
+  image-rendering: pixelated;
+  border: 1px solid var(--panel-border);
+  background-image:
+    linear-gradient(45deg, #1f2432 25%, transparent 25%),
+    linear-gradient(-45deg, #1f2432 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, #1f2432 75%),
+    linear-gradient(-45deg, transparent 75%, #1f2432 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--muted);
+}
+
+.file-label input {
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.muted {
+  color: var(--muted);
+  margin-top: 0.55rem;
+}
+
+.success {
+  color: #49e58c;
+}
+
+.error {
+  color: #ff8a8a;
+}
+
+.warning {
+  color: #ffdc7a;
+}
