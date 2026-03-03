@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>FIP Presents - Cary Collection Digital Twins Library</title>
   <style>
     @font-face {
@@ -23,6 +23,9 @@
       justify-content: center;
       min-height: 100vh;
       text-align: center;
+      -webkit-text-size-adjust: 100%;
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
     }
 
     h1 {
@@ -50,6 +53,7 @@
       background: transparent;
       box-shadow: none;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      touch-action: manipulation;
     }
 
     .svg-button:hover {
@@ -92,29 +96,35 @@
       background: transparent;
       border: none;
       border-radius: 12px;
-      padding: 10px 18px;
+      padding: 12px 18px;
       font-family: 'TamaConnectType', Arial, Helvetica, sans-serif;
       font-size: 1rem;
       cursor: pointer;
       box-shadow: none;
       transition: background 0.2s ease, transform 0.2s ease;
       z-index: 1000;
+      min-height: 44px;
+      touch-action: manipulation;
     }
 
     .nav-btn:hover {
       background: transparent;
-      transform: none;
     }
 
     .back-btn {
-      top: 15px;
-      left: 15px;
+      top: calc(15px + env(safe-area-inset-top, 0px));
+      left: calc(15px + env(safe-area-inset-left, 0px));
     }
 
     .home-btn {
-      bottom: 20px;
-      left: 45%;
-      transform: none;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .home-btn:hover,
+    .home-btn:active {
+      transform: translateX(-50%);
     }
 
     .menu {
@@ -224,6 +234,53 @@
     #homeBtn.no-hover:hover .home-icon {
       content: none;
     }
+
+    @media (max-width: 1024px) {
+      h1 {
+        margin-bottom: 28px;
+        font-size: 2rem;
+      }
+
+      .button-container {
+        gap: 28px;
+      }
+
+      .svg-button {
+        min-width: 180px;
+        min-height: 64px;
+        padding: 16px;
+      }
+
+      .svg-button img {
+        width: 150px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      h1 {
+        font-size: 1.55rem;
+      }
+
+      .small-top {
+        font-size: 0.95rem;
+      }
+
+      .small-bottom {
+        font-size: 1.55rem;
+      }
+
+      .svg-button span {
+        font-size: 1rem;
+      }
+
+      .back-btn {
+        font-size: 0.95rem;
+      }
+
+      .home-icon {
+        width: 58px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -244,12 +301,12 @@
     </h1>
 
     <div class="button-container">
-      <a href="#" class="svg-button" onclick="openCuneiformMenu()">
+      <a href="#" class="svg-button" onclick="openCuneiformMenu(); return false;">
         <img src="Menu/CuneiformEgg1.svg" alt="Cuneiform Tablet" class="shake-icon">
         <span>Cuneiform Tablet</span>
       </a>
 
-      <a href="#" class="svg-button" onclick="openPapyrusMenu()">
+      <a href="#" class="svg-button" onclick="openPapyrusMenu(); return false;">
         <img src="Menu/CyperusPapyrus1.svg" alt="Papyrus Roll" class="shake-icon">
         <span>Papyrus Roll</span>
       </a>
