@@ -7,7 +7,7 @@
   <style>
     @font-face {
       font-family: 'TamaConnectType';
-      src: url('Menu/tamaconnecttype.ttf') format('truetype');
+      src: url('tamaconnecttype.ttf') format('truetype');
       font-weight: normal;
       font-style: normal;
     }
@@ -67,7 +67,7 @@
       font-size: 1.1rem;
       font-weight: 500;
     }
-
+  
     .normal {
       font-family: 'TamaConnectType', Arial, Helvetica, sans-serif;
       font-weight: normal;
@@ -76,17 +76,18 @@
     .small-top {
       font-size: 1.1rem;
     }
-
+  
     .small-bottom {
       font-size: 2.4rem;
       font-weight: 500;
     }
-
+  
     .wide-icon {
       width: 240px;
       height: auto;
     }
-
+  
+    /* Navigation Buttons */
     .nav-btn {
       position: fixed;
       background: transparent;
@@ -117,6 +118,7 @@
       transform: none;
     }
 
+    /* Menus */
     .menu {
       width: 100%;
       display: flex;
@@ -129,15 +131,16 @@
       display: none;
     }
 
-    #papyrusMenu .button-container {
-      display: flex;
-      flex-direction: column;
-      gap: 25px;
-      margin-top: 40px;
-      padding-bottom: 140px;
-      align-items: center;
-    }
-
+    /* Vertical layout for Papyrus submenu */
+#papyrusMenu .button-container {
+  display: flex;
+  flex-direction: column;  /* stack vertically */
+  gap: 25px;
+  margin-top: 40px;        /* space below header */
+  padding-bottom: 140px;   /* space from Home button */
+  align-items: center;      /* center buttons horizontally */
+}
+  
     .home-icon {
       width: 70px;
       height: auto;
@@ -152,11 +155,13 @@
       line-height: 1;
       opacity: 0.8;
     }
-
+  
+    /* Home Icon Hover Swap */
     #homeBtn:hover .home-icon {
-      content: url('Menu/CyperusPapyrus1.svg');
+      content: url('CyperusPapyrus1.svg');
     }
 
+    /* Shake animation for Papyrus Roll */
     @keyframes eggShake {
       0% { transform: rotate(0deg); }
       15% { transform: rotate(3deg); }
@@ -173,68 +178,73 @@
     }
 
     .papyrus-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 60px;
-      margin-bottom: 20px;
-    }
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60px;   /* Increase this to move header down */
+  margin-bottom: 20px;
+}
 
-    .papyrus-header-icon {
-      width: 80px;
-      height: auto;
-      max-width: 100%;
-      margin-bottom: 15px;
-    }
+.papyrus-header-icon {
+  width: 80px;
+  height: auto;
+  max-width: 100%;
+  margin-bottom: 15px; /* Space between icon and heading */
+}
 
-    .papyrus-title {
-      font-size: 2rem;
-      margin: 0;
-    }
+.papyrus-title {
+  font-size: 2rem;
+  margin: 0;
+}
 
-    .cuneiform-header {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin-top: 60px;
-      margin-bottom: 20px;
-    }
+.cuneiform-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60px; /* Moves header down */
+  margin-bottom: 20px;
+}
 
-    .cuneiform-header-icon {
-      width: 80px;
-      height: auto;
-      max-width: 100%;
-      margin-bottom: 15px;
-    }
+.cuneiform-header-icon {
+  width: 80px;
+  height: auto;
+  max-width: 100%;
+  margin-bottom: 15px;
+}
 
-    .cuneiform-title {
-      font-size: 2rem;
-      margin: 0;
-    }
+.cuneiform-title {
+  font-size: 2rem;
+  margin: 0;
+}
 
-    #cuneiformMenu .button-container {
-      display: flex;
-      flex-direction: column;
-      gap: 25px;
-      margin-top: 40px;
-      padding-bottom: 140px;
-      align-items: center;
-    }
+/* Make Cuneiform Tablet submenu buttons vertical */
+#cuneiformMenu .button-container {
+  display: flex;
+  flex-direction: column; /* stack buttons vertically */
+  gap: 25px;              /* space between buttons */
+  margin-top: 40px;       /* space below header */
+  padding-bottom: 140px;  /* space from Home button */
+  align-items: center;    /* center buttons horizontally */
+}
 
-    #homeBtn.no-hover:hover .home-icon {
-      content: none;
-    }
+/* Disable home icon hover when in Cuneiform menu */
+#homeBtn.no-hover:hover .home-icon {
+  content: none;
+}
   </style>
 </head>
 <body>
 
+  <!-- Back Button -->
   <button id="backBtn" class="nav-btn back-btn" onclick="goBack()">← Back</button>
 
+    <!-- Home Button -->
   <button id="homeBtn" class="nav-btn home-btn" onclick="goHome()">
-    <img src="Menu/BrokenCyperusPapyrus1.svg" alt="Home" class="home-icon" id="homeIcon">
+    <img src="BrokenCyperusPapyrus1.svg" alt="Home" class="home-icon" id="homeIcon">
     <span class="home-label">Home</span>
   </button>
 
+  <!-- Main Menu -->
   <div id="mainMenu" class="menu">
 
     <h1 class="heading">
@@ -244,69 +254,74 @@
     </h1>
 
     <div class="button-container">
-      <a href="#" class="svg-button" onclick="openCuneiformMenu()">
-        <img src="Menu/CuneiformEgg1.svg" alt="Cuneiform Tablet" class="shake-icon">
-        <span>Cuneiform Tablet</span>
-      </a>
 
+      <!-- Cuneiform Tablet Button -->
+<a href="#" class="svg-button" onclick="openCuneiformMenu()">
+  <img src="CuneiformEgg1.svg" alt="Cuneiform Tablet" class="shake-icon">
+  <span>Cuneiform Tablet</span>
+</a>
+
+      <!-- Papyrus Roll Button -->
       <a href="#" class="svg-button" onclick="openPapyrusMenu()">
-        <img src="Menu/CyperusPapyrus1.svg" alt="Papyrus Roll" class="shake-icon">
+        <img src="CyperusPapyrus1.svg" alt="Papyrus Roll" class="shake-icon">
         <span>Papyrus Roll</span>
       </a>
+
     </div>
 
   </div>
 
-  <div id="papyrusMenu" class="menu hidden">
+  <!-- Papyrus Sub Menu -->
+<div id="papyrusMenu" class="menu hidden">
 
-    <div class="papyrus-header">
-      <img src="Menu/SoakedPapyrus1.svg" alt="Soaked Papyrus" class="papyrus-header-icon">
-      <h1 class="papyrus-title">Papyrus Menu</h1>
-    </div>
-
-    <div class="button-container">
-      <a href="Projection_Mapping_HandTracking/" class="svg-button">
-        <span>Papyrus Info</span>
-      </a>
-
-      <a href="Holographic_Display_s/" class="svg-button">
-        <span>Mini Display</span>
-      </a>
-
-      <a href="Holographic_Display_Controller/" class="svg-button">
-        <span>Project Documentation</span>
-      </a>
-    </div>
-
+  <div class="papyrus-header">
+    <img src="SoakedPapyrus1.svg" alt="Soaked Papyrus" class="papyrus-header-icon">
+    <h1 class="papyrus-title">Papyrus Menu</h1>
   </div>
 
-  <div id="cuneiformMenu" class="menu hidden">
+  <div class="button-container">
+    <a href="../Projection_Mapping_HandTracking/" class="svg-button">
+      <span>Papyrus Info</span>
+    </a>
 
-    <div class="cuneiform-header">
-      <img src="Menu/CuneiformEgg1.svg" alt="Cuneiform Tablet" class="cuneiform-header-icon">
-      <h1 class="cuneiform-title">Cuneiform Tablet Menu</h1>
-    </div>
+    <a href="../Holographic_Display_s/" class="svg-button">
+      <span>Mini Display</span>
+    </a>
 
-    <div class="button-container">
-      <a href="Museum_Artifact_Viewer/" class="svg-button">
-        <span>Tablet Info</span>
-      </a>
-
-      <a href="Cubic_DIsplay_System/" class="svg-button">
-        <span>Project Documentation</span>
-      </a>
-
-      <a href="Holographic_Display/" class="svg-button">
-        <span>Connect to Main Display</span>
-      </a>
-    </div>
-
+    <a href="../Holographic_Display_Controller/" class="svg-button">
+      <span>Project Documentation</span>
+    </a>
   </div>
+
+</div>
+
+<!-- Cuneiform Tablet Sub Menu -->
+<div id="cuneiformMenu" class="menu hidden">
+
+  <div class="cuneiform-header">
+    <img src="CuneiformEgg1.svg" alt="Cuneiform Tablet" class="cuneiform-header-icon">
+    <h1 class="cuneiform-title">Cuneiform Tablet Menu</h1>
+  </div>
+
+  <div class="button-container">
+    <a href="../Museum_Artifact_Viewer/" class="svg-button">
+      <span>Tablet Info</span>
+    </a>
+
+    <a href="../Cubic_DIsplay_System/" class="svg-button">
+      <span>Project Documentation</span>
+    </a>
+
+    <a href="../Holographic_Display/" class="svg-button">
+      <span>Connect to Main Display</span>
+    </a>
+  </div>
+
+</div>
 
   <script>
     const mainMenu = document.getElementById("mainMenu");
     const papyrusMenu = document.getElementById("papyrusMenu");
-    const cuneiformMenu = document.getElementById("cuneiformMenu");
     const backBtn = document.getElementById("backBtn");
     const homeBtn = document.getElementById("homeBtn");
 
@@ -317,39 +332,53 @@
       homeBtn.style.display = "block";
     }
 
-    function openCuneiformMenu() {
-      mainMenu.classList.add("hidden");
-      cuneiformMenu.classList.remove("hidden");
-      backBtn.style.display = "block";
-      homeBtn.style.display = "block";
-
-      const homeIcon = document.getElementById("homeIcon");
-      homeIcon.src = "Menu/CuneiformEgg1.svg";
-      homeBtn.classList.add("no-hover");
-    }
-
     function goHome() {
-      papyrusMenu.classList.add("hidden");
-      cuneiformMenu.classList.add("hidden");
-      mainMenu.classList.remove("hidden");
-      backBtn.style.display = "none";
-      homeBtn.style.display = "none";
+  papyrusMenu.classList.add("hidden");
+  cuneiformMenu.classList.add("hidden");
+  mainMenu.classList.remove("hidden");
+  backBtn.style.display = "none";
+  homeBtn.style.display = "none";
 
-      const homeIcon = document.getElementById("homeIcon");
-      homeIcon.src = "Menu/BrokenCyperusPapyrus1.svg";
-      homeBtn.classList.remove("no-hover");
-    }
+  // Restore Home icon
+  const homeIcon = document.getElementById("homeIcon");
+  homeIcon.src = "BrokenCyperusPapyrus1.svg";
+
+  // Re-enable hover effect
+  homeBtn.classList.remove("no-hover");
+}
 
     function goBack() {
-      papyrusMenu.classList.add("hidden");
-      cuneiformMenu.classList.add("hidden");
-      mainMenu.classList.remove("hidden");
-      backBtn.style.display = "none";
-      homeBtn.style.display = "none";
+      goHome(); /* fix later */
     }
 
+    // Initialize
     backBtn.style.display = "none";
     homeBtn.style.display = "none";
+
+    const cuneiformMenu = document.getElementById("cuneiformMenu");
+
+function openCuneiformMenu() {
+  mainMenu.classList.add("hidden");
+  cuneiformMenu.classList.remove("hidden");
+  backBtn.style.display = "block";
+  homeBtn.style.display = "block";
+
+  // Change Home button icon
+  const homeIcon = document.getElementById("homeIcon");
+  homeIcon.src = "CuneiformEgg1.svg";
+
+  // Disable hover effect
+  homeBtn.classList.add("no-hover");
+}
+
+function goBack() {
+  // Hide all submenus and return to main menu
+  papyrusMenu.classList.add("hidden");
+  cuneiformMenu.classList.add("hidden");
+  mainMenu.classList.remove("hidden");
+  backBtn.style.display = "none";
+  homeBtn.style.display = "none";
+}
   </script>
 
 </body>
