@@ -117,7 +117,11 @@ controls.enablePan = false;
    Load Model (IDENTICAL PIPELINE)
 ================================ */
 
-const MODEL_URL = "../the_map_of_the_world_tablet.glb";
+const MODEL_URLS = [
+  "./the_map_of_the_world_tablet.glb",
+  "../Museum_Artifact_Viewer/the_map_of_the_world_tablet.glb",
+  "../Cubic_DIsplay_System/the_map_of_the_world_tablet.glb"
+];
 
 const draco = new DRACOLoader();
 draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
@@ -128,7 +132,32 @@ loader.setDRACOLoader(draco);
 let cameraDist = 1;
 let centerY = 0;
 
-loader.load(MODEL_URL, gltf =>
+function loadFirstAvailable(urls, onLoad)
+{
+  const tryLoad = (index) =>
+  {
+    if(index >= urls.length)
+    {
+      console.error("Failed to load model from all candidate paths", urls);
+      return;
+    }
+
+    loader.load(
+      urls[index],
+      gltf =>
+      {
+        console.log("Loaded model:", urls[index]);
+        onLoad(gltf);
+      },
+      undefined,
+      () => tryLoad(index + 1)
+    );
+  };
+
+  tryLoad(0);
+}
+
+loadFirstAvailable(MODEL_URLS, gltf =>
 {
   const root = gltf.scene;
 

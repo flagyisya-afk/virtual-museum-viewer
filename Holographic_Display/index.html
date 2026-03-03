@@ -29,6 +29,58 @@ canvas {
   display: block;
 }
 
+.controls {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  color: #f2f2f2;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  font-size: 12px;
+  transition: opacity 0.6s ease;
+}
+
+.controls.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.controls .btns {
+  display: flex;
+  gap: 8px;
+}
+
+.controls button {
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.controls button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#cameraPreview {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
 /*top*/
 .pos-top {
   top: 0;
@@ -61,6 +113,12 @@ canvas {
 
 <body>
 
+<div class="controls" id="controlsPanel">
+  <div id="trackStatus">Starting hand tracking...</div>
+</div>
+
+<video id="cameraPreview" autoplay playsinline muted hidden></video>
+
 <div class="position pos-top"><canvas id="view-top"></canvas></div>
 <div class="position pos-bottom"><canvas id="view-bottom"></canvas></div>
 <div class="position pos-left"><canvas id="view-left"></canvas></div>
@@ -70,7 +128,7 @@ canvas {
 import * as THREE from "https://esm.sh/three@0.154.0";
 import { GLTFLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/GLTFLoader.js";
 import { DRACOLoader } from "https://esm.sh/three@0.154.0/examples/jsm/loaders/DRACOLoader.js";
-import { CSS2DRenderer, CSS2DObject } from "https://esm.sh/three@0.154.0/examples/jsm/renderers/CSS2DRenderer.js";
+import { FilesetResolver, HandLandmarker } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
 
 
 
@@ -100,14 +158,41 @@ const pivot = new THREE.Object3D();
 modelGroup.add(pivot);
 
 /*GLB*/
-const MODEL_URL = "../the_map_of_the_world_tablet.glb";
+const MODEL_URLS = [
+  "./the_map_of_the_world_tablet.glb",
+  "../Holographic_Display_s/the_map_of_the_world_tablet.glb",
+  "../Holographic_Display_Controller/the_map_of_the_world_tablet.glb",
+  "../Museum_Artifact_Viewer/the_map_of_the_world_tablet.glb",
+  "../Cubic_DIsplay_System/the_map_of_the_world_tablet.glb"
+];
 
 const draco = new DRACOLoader();
 draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
-loader.load(MODEL_URL, gltf => {
+function loadFirstAvailable(urls, onLoad) {
+  const tryLoad = (index) => {
+    if (index >= urls.length) {
+      console.error("Failed to load model from all candidate paths", urls);
+      return;
+    }
+
+    loader.load(
+      urls[index],
+      (gltf) => {
+        console.log("Loaded model:", urls[index]);
+        onLoad(gltf);
+      },
+      undefined,
+      () => tryLoad(index + 1)
+    );
+  };
+
+  tryLoad(0);
+}
+
+loadFirstAvailable(MODEL_URLS, gltf => {
   const root = gltf.scene;
 
   root.traverse(obj => {
@@ -149,11 +234,12 @@ function createView(canvas) {
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
-    alpha: false
+    antialias: false,
+    alpha: false,
+    powerPreference: 'high-performance'
   });
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 4));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   return { cam, renderer };
@@ -166,14 +252,40 @@ const views = {
   right: createView(document.getElementById("view-right")),
 };
 
+function resizeViews() {
+  for (const key in views) {
+    const { cam, renderer } = views[key];
+    const width = Math.max(renderer.domElement.clientWidth, 1);
+    const height = Math.max(renderer.domElement.clientHeight, 1);
+    cam.aspect = width / height;
+    cam.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
+  }
+}
+
+resizeViews();
+window.addEventListener("resize", resizeViews);
+
+const controlsPanel = document.getElementById("controlsPanel");
+const trackStatus = document.getElementById("trackStatus");
+const cameraPreview = document.getElementById("cameraPreview");
+
 /* rotation state */
 let rotX = 0, rotY = 0;
 let targetX = 0, targetY = 0;
+let handTrackingActive = false;
+let handLandmarker = null;
+let handLoopId = null;
+let handStream = null;
+let lastHandDetectTime = 0;
+const HAND_DETECT_INTERVAL_MS = 33;
+let currentTrackStatus = "Tracking: controller input";
 
 /* BroadcastChannel connection */
 const channel = new BroadcastChannel("hologram-control");
 
 channel.onmessage = (event) => {
+  if (handTrackingActive) return;
   const data = event.data;
   if (!data) return;
 
@@ -181,11 +293,140 @@ channel.onmessage = (event) => {
   targetY = data.rotY ?? 0;
 };
 
+async function ensureHandLandmarker() {
+  if (handLandmarker) return handLandmarker;
+
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+  );
+
+  handLandmarker = await HandLandmarker.createFromOptions(vision, {
+    baseOptions: {
+      modelAssetPath:
+        "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+    },
+    runningMode: "VIDEO",
+    numHands: 1,
+    minHandDetectionConfidence: 0.45,
+    minHandPresenceConfidence: 0.4,
+    minTrackingConfidence: 0.4
+  });
+
+  return handLandmarker;
+}
+
+function setTrackStatus(text) {
+  if (currentTrackStatus === text) return;
+  currentTrackStatus = text;
+  trackStatus.textContent = text;
+}
+
+function isPointerOnlyGesture(lm) {
+  if (!lm || lm.length < 21) return false;
+
+  const indexExtended = lm[8].y < (lm[6].y - 0.02);
+  const middleCurled = lm[12].y > (lm[10].y - 0.01);
+  const ringCurled = lm[16].y > (lm[14].y - 0.01);
+  const pinkyCurled = lm[20].y > (lm[18].y - 0.01);
+
+  return indexExtended && middleCurled && ringCurled && pinkyCurled;
+}
+
+function stopHandTracking() {
+  handTrackingActive = false;
+
+  if (handLoopId !== null) {
+    cancelAnimationFrame(handLoopId);
+    handLoopId = null;
+  }
+
+  if (handStream) {
+    handStream.getTracks().forEach(track => track.stop());
+    handStream = null;
+  }
+
+  cameraPreview.srcObject = null;
+  setTrackStatus("Tracking: controller input");
+}
+
+function processHandFrame() {
+  if (!handTrackingActive || !handLandmarker) return;
+  const now = performance.now();
+
+  if (cameraPreview.readyState >= 2 && (now - lastHandDetectTime) >= HAND_DETECT_INTERVAL_MS) {
+    lastHandDetectTime = now;
+    const result = handLandmarker.detectForVideo(cameraPreview, now);
+    const lm = result?.landmarks?.[0];
+
+    if (lm && lm[8]) {
+      if (isPointerOnlyGesture(lm)) {
+        const fingertip = lm[8];
+        const mappedX = (1 - fingertip.x) - 0.5;
+        const mappedY = fingertip.y - 0.5;
+
+        targetY = mappedX * 2.4;
+        targetX = mappedY * 2.2;
+        setTrackStatus("Tracking: pointer active");
+      } else {
+        setTrackStatus("Tracking: show pointer finger only");
+      }
+    } else {
+      setTrackStatus("Tracking: no hand detected");
+    }
+  }
+
+  handLoopId = requestAnimationFrame(processHandFrame);
+}
+
+async function autoStartHandTracking() {
+  try {
+    setTrackStatus("Starting hand tracking...");
+
+    await ensureHandLandmarker();
+
+    handStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: "user",
+        width: { ideal: 320 },
+        height: { ideal: 240 }
+      },
+      audio: false
+    });
+
+    cameraPreview.srcObject = handStream;
+    await cameraPreview.play();
+
+    handTrackingActive = true;
+    setTrackStatus("Tracking active");
+
+    // Fade out the controls panel after a short delay
+    setTimeout(() => {
+      controlsPanel.classList.add("hidden");
+    }, 1500);
+
+    processHandFrame();
+  } catch (error) {
+    console.error("Failed to start hand tracking", error);
+    setTrackStatus("Camera denied \u2013 using controller input");
+    // Hide controls after showing the error briefly
+    setTimeout(() => {
+      controlsPanel.classList.add("hidden");
+    }, 3000);
+  }
+}
+
+window.addEventListener("beforeunload", () => {
+  stopHandTracking();
+});
+
+// Auto-start hand tracking on load
+autoStartHandTracking();
+
 
 /*renderloop*/
 function render() {
-  rotX += (targetX - rotX) * 0.08;
-  rotY += (targetY - rotY) * 0.08;
+  rotX += (targetX - rotX) * 0.18;
+  rotY += (targetY - rotY) * 0.18;
 
   const poses = {
     top:    [ 0, centerY,  cameraDist],
@@ -215,10 +456,6 @@ function render() {
       pivot.rotation.x = 0;
     }
 
-    const r = renderer.domElement.getBoundingClientRect();
-    cam.aspect = r.width / r.height;
-    cam.updateProjectionMatrix();
-    renderer.setSize(r.width, r.height, true);
     renderer.render(scene, cam);
   }
 

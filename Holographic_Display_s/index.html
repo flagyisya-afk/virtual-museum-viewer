@@ -94,14 +94,40 @@ let cameraDist = 1;
 let centerY = 0;
 
 /*GLB*/
-const MODEL_URL = "../the_head_of_the_sculpture_use_zbrush.glb";
+const MODEL_URLS = [
+  "./the_head_of_the_sculpture_use_zbrush.glb",
+  "../Museum_Artifact_Viewer/the_head_of_the_sculpture_use_zbrush.glb",
+  "./the_map_of_the_world_tablet.glb",
+  "../Museum_Artifact_Viewer/the_map_of_the_world_tablet.glb"
+];
 
 const draco = new DRACOLoader();
 draco.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
 const loader = new GLTFLoader();
 loader.setDRACOLoader(draco);
 
-loader.load(MODEL_URL, gltf => {
+function loadFirstAvailable(urls, onLoad) {
+  const tryLoad = (index) => {
+    if (index >= urls.length) {
+      console.error("Failed to load model from all candidate paths", urls);
+      return;
+    }
+
+    loader.load(
+      urls[index],
+      (gltf) => {
+        console.log("Loaded model:", urls[index]);
+        onLoad(gltf);
+      },
+      undefined,
+      () => tryLoad(index + 1)
+    );
+  };
+
+  tryLoad(0);
+}
+
+loadFirstAvailable(MODEL_URLS, gltf => {
   currentModel = gltf.scene;
 
   currentModel.traverse(m => {
