@@ -2,308 +2,515 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Papyrus Info Viewer</title>
-
-  <!-- Custom Font -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <title>Papyrus Info</title>
   <style>
     @font-face {
       font-family: "TamaConnect";
       src: url("tamaconnecttype.ttf") format("truetype");
     }
 
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      margin: 0;
       overflow: hidden;
       font-family: "TamaConnect", sans-serif;
-      background: #000000;
-      color: #ffffff;
+      background: #0f0f14;
+      color: #fff;
+      touch-action: none;
     }
 
-    #infoBox {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      padding: 16px 20px;
-      border-radius: 10px;
-      max-width: 320px;
-      text-align: center;
-      display: none;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-      z-index: 20;
-    }
+    canvas { display: block; }
 
-    #infoBox h3 {
-      margin: 0 0 8px;
-      font-size: 18px;
-    }
-
-    #infoBox p {
-      margin: 0;
-      font-size: 14px;
-      line-height: 1.4;
-    }
-
-    #hint {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      padding: 8px 14px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 20;
-    }
-
-    #status {
-      position: absolute;
-      top: 15px;
-      right: 15px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      z-index: 20;
-    }
-
+    /* ── Back button ── */
     #backLink {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(0, 0, 0, 0.7);
-      color: #ffffff;
-      text-decoration: none;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 13px;
-      z-index: 20;
+      position: fixed; top: 12px; left: 12px;
+      background: rgba(0,0,0,0.65); color: #fff;
+      text-decoration: none; padding: 8px 14px;
+      border-radius: 10px; font-size: 13px; z-index: 50;
+    }
+    #backLink:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Status pill ── */
+    #status {
+      position: fixed; top: 12px; right: 12px;
+      background: rgba(0,0,0,0.65); padding: 8px 12px;
+      border-radius: 10px; font-size: 12px; z-index: 50;
     }
 
-    #backLink:hover {
-      background: rgba(255, 255, 255, 0.15);
+    /* ── Flip button ── */
+    #flipBtn {
+      position: fixed; bottom: 24px; right: 24px;
+      background: rgba(0,0,0,0.7); color: #fff;
+      border: 1px solid rgba(255,255,255,0.25);
+      padding: 10px 18px; border-radius: 12px;
+      font-family: "TamaConnect", sans-serif;
+      font-size: 14px; cursor: pointer; z-index: 50;
+      transition: background 0.2s;
+    }
+    #flipBtn:hover { background: rgba(255,255,255,0.15); }
+
+    /* ── Hint ── */
+    #hint {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.65); padding: 6px 14px;
+      border-radius: 10px; font-size: 12px; z-index: 50;
+      opacity: 1; transition: opacity 1s;
+      pointer-events: none;
+    }
+
+    /* ── SVG annotation overlay ── */
+    #annotationLayer {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 30;
+    }
+
+    /* ── Info cards ── */
+    .info-card {
+      position: absolute;
+      background: rgba(0,0,0,0.78);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 10px 14px 10px 10px;
+      max-width: 210px;
+      display: flex; align-items: flex-start; gap: 8px;
+      pointer-events: auto; z-index: 40;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    .info-card.visible { opacity: 1; }
+    .info-card img.tama-icon {
+      width: 32px; height: 32px; flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .info-card .card-body h4 {
+      font-size: 13px; margin-bottom: 4px;
+      color: #f0d9a0;
+    }
+    .info-card .card-body p {
+      font-size: 11px; line-height: 1.45;
+      color: #ccc;
+    }
+
+    /* ── Side label (front / back) ── */
+    #sideLabel {
+      position: fixed; top: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.6); padding: 6px 16px;
+      border-radius: 10px; font-size: 14px; z-index: 50;
+      color: #f0d9a0;
     }
   </style>
 </head>
 <body>
-  <a id="backLink" href="../index.html">Back to Main Menu</a>
-  <div id="hint">Drag to rotate • Scroll to zoom • Click on details</div>
-  <div id="status">Loading model...</div>
 
-  <div id="infoBox">
-    <h3 id="infoTitle"></h3>
-    <p id="infoText"></p>
-  </div>
+<a id="backLink" href="../index.html">&larr; Back</a>
+<div id="status">Loading model…</div>
+<div id="sideLabel">Front</div>
+<div id="hint">Drag to pan · Pinch / scroll to zoom</div>
+<button id="flipBtn">&#x21C5; Flip Over</button>
 
-  <script type="module">
+<!-- SVG for animated annotation lines -->
+<svg id="annotationLayer"></svg>
 
-// Import Three.js from CDN
+<!-- Info cards will be created by JS -->
+
+<script type="module">
 import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
-import { OrbitControls } from "https://unpkg.com/three@0.158.0/examples/jsm/controls/OrbitControls.js";
 import { GLTFLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js";
 
-// ---------------------------
-// Info Database
-// ---------------------------
-
-const infoData = {
-  "Object_4": {
-    title: "Papyrus Fragment",
-    text: "A Byzantine-medieval papyrus surface with visible fiber texture and age wear."
+// ─── Annotation data ───
+// anchorNorm: normalised position on paperus (0-1, 0-1), cardSide: "left"|"right"
+const annotations = [
+  {
+    id: "harvesting",
+    title: "Harvesting",
+    text: "The stocks of a cyperus papyrus are collected and the outer rind is removed, exposing the inner pith.",
+    icon: "../FIP%20Tamagotchis/CuneiformEgg1.svg",
+    anchorNorm: [0.20, 0.18],
+    cardSide: "left",
+    side: "front"
   },
-  "Object_0": {
-    title: "Papyrus Fragment",
-    text: "A Byzantine-medieval papyrus surface with visible fiber texture and age wear."
+  {
+    id: "cutting",
+    title: "Cutting",
+    text: "The inner pith is cut into thin strips approximately 40 cm long.",
+    icon: "../FIP%20Tamagotchis/BrokenCyperusPapyrus1.svg",
+    anchorNorm: [0.80, 0.22],
+    cardSide: "right",
+    side: "front"
+  },
+  {
+    id: "soaking",
+    title: "Soaking",
+    text: "The strips are soaked in water for several days to soften them.",
+    icon: "../FIP%20Tamagotchis/SoakedPapyrus1.svg",
+    anchorNorm: [0.25, 0.50],
+    cardSide: "left",
+    side: "front"
+  },
+  {
+    id: "weaving",
+    title: "Weaving",
+    text: "The thin soaked strips are laid out in perpendicular layers and pressed together.",
+    icon: "../FIP%20Tamagotchis/PerpendicularPapyrus1.svg",
+    anchorNorm: [0.75, 0.50],
+    cardSide: "right",
+    side: "front"
+  },
+  {
+    id: "drying",
+    title: "Drying",
+    text: "The layers are pressed under wooden boards for several days to flatten and dry, forming a smooth writing surface.",
+    icon: "../FIP%20Tamagotchis/PapyrusPaper1.svg",
+    anchorNorm: [0.30, 0.78],
+    cardSide: "left",
+    side: "front"
+  },
+  {
+    id: "writing",
+    title: "Writing",
+    text: "Ink is made by burning organic materials, pulverizing the soot, and mixing with water and acacia gum binder. This stable ink does not fade or damage the papyrus.",
+    icon: "../FIP%20Tamagotchis/PapyrusScroll1.svg",
+    anchorNorm: [0.70, 0.82],
+    cardSide: "right",
+    side: "front"
+  },
+  {
+    id: "backboard",
+    title: "Backboard",
+    text: "This papyrus was glued onto a backboard by previous curators to preserve it. Unfortunately, this can cause the material to break down, stain, or warp.",
+    icon: "../FIP%20Tamagotchis/CyperusPapyrus1.svg",
+    anchorNorm: [0.50, 0.45],
+    cardSide: "right",
+    side: "back"
   }
-};
+];
 
-// ---------------------------
-// Scene Setup
-// ---------------------------
-
+// ─── Scene ───
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0f0f14);
 
-const camera = new THREE.PerspectiveCamera(
-  60,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
-
-camera.position.set(0, 2, 5);
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+camera.position.set(0, 0, 5);
+camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-document.body.appendChild(renderer.domElement);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.prepend(renderer.domElement);
 
-// ---------------------------
-// Info Box Elements
-// ---------------------------
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(2, 2, 6);
+scene.add(dirLight);
 
-const infoBox = document.getElementById("infoBox");
-const infoTitle = document.getElementById("infoTitle");
-const infoText = document.getElementById("infoText");
-const status = document.getElementById("status");
+// ─── Camera helpers (ortho zoom & pan, NO rotation) ───
+let orthoSize = 1.2;
+const panOffset = new THREE.Vector2(0, 0);
+const MIN_ZOOM = 0.4;
+const MAX_ZOOM = 3.0;
 
-function showInfo(title, text) {
-  infoTitle.textContent = title;
-  infoText.textContent = text;
-  infoBox.style.display = "block";
+function updateCamera() {
+  const aspect = window.innerWidth / window.innerHeight;
+  camera.left   = -orthoSize * aspect + panOffset.x;
+  camera.right  =  orthoSize * aspect + panOffset.x;
+  camera.top    =  orthoSize + panOffset.y;
+  camera.bottom = -orthoSize + panOffset.y;
+  camera.updateProjectionMatrix();
 }
+updateCamera();
 
-function hideInfo() {
-  infoBox.style.display = "none";
-}
+// ─── Pointer pan ───
+let pointerDown = false;
+let lastPointer = { x: 0, y: 0 };
+let pointerMoved = false;
 
-// ---------------------------
-// Controls
-// ---------------------------
+renderer.domElement.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "touch" && touchCount >= 2) return;
+  pointerDown = true;
+  pointerMoved = false;
+  lastPointer.x = e.clientX;
+  lastPointer.y = e.clientY;
+});
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+renderer.domElement.addEventListener("pointermove", (e) => {
+  if (!pointerDown) return;
+  const dx = e.clientX - lastPointer.x;
+  const dy = e.clientY - lastPointer.y;
+  if (Math.abs(dx) > 2 || Math.abs(dy) > 2) pointerMoved = true;
+  const scale = (orthoSize * 2) / window.innerHeight;
+  panOffset.x -= dx * scale;
+  panOffset.y += dy * scale;
+  lastPointer.x = e.clientX;
+  lastPointer.y = e.clientY;
+  updateCamera();
+});
 
-// ---------------------------
-// Lights
-// ---------------------------
+renderer.domElement.addEventListener("pointerup", () => { pointerDown = false; });
+renderer.domElement.addEventListener("pointercancel", () => { pointerDown = false; });
 
-scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+// ─── Pinch zoom (touch) ───
+let touchCount = 0;
+let lastPinchDist = 0;
 
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(5, 5, 5);
-scene.add(light);
+renderer.domElement.addEventListener("touchstart", (e) => {
+  touchCount = e.touches.length;
+  if (touchCount === 2) {
+    lastPinchDist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+  }
+}, { passive: true });
 
-// ---------------------------
-// Model Loader
-// ---------------------------
+renderer.domElement.addEventListener("touchmove", (e) => {
+  if (e.touches.length === 2) {
+    const dist = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const ratio = lastPinchDist / dist;
+    orthoSize = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, orthoSize * ratio));
+    lastPinchDist = dist;
+    updateCamera();
+  }
+}, { passive: true });
 
+renderer.domElement.addEventListener("touchend", (e) => {
+  touchCount = e.touches.length;
+});
+
+// ─── Scroll zoom (mouse) ───
+renderer.domElement.addEventListener("wheel", (e) => {
+  e.preventDefault();
+  orthoSize *= e.deltaY > 0 ? 1.08 : 0.93;
+  orthoSize = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, orthoSize));
+  updateCamera();
+}, { passive: false });
+
+// ─── Flip ───
+let showingFront = true;
+let currentRotationY = 0;
+let targetRotationY = 0;
+let flipping = false;
+
+const flipBtn = document.getElementById("flipBtn");
+const sideLabel = document.getElementById("sideLabel");
+
+flipBtn.addEventListener("click", () => {
+  showingFront = !showingFront;
+  targetRotationY = showingFront ? 0 : Math.PI;
+  sideLabel.textContent = showingFront ? "Front" : "Back";
+  flipping = true;
+  buildAnnotations();
+});
+
+// ─── Load model ───
 const loader = new GLTFLoader();
+const MODEL_PATHS = ["../byzantine-medieval_papyrus.glb", "../byzantine-medieval_papyrus%20(1).glb"];
+let model = null;
+let modelBox = new THREE.Box3();
 
-const MODEL_PATHS = ["../byzantine-medieval_papyrus.glb", "model.gltf"];
-
-let model;
-const clickableObjects = [];
-
-function loadModelAt(index) {
-  if (index >= MODEL_PATHS.length) {
-    status.textContent = "Model failed to load";
+function loadModelAt(idx) {
+  if (idx >= MODEL_PATHS.length) {
+    document.getElementById("status").textContent = "Model failed to load";
     return;
   }
-
-  const modelPath = MODEL_PATHS[index];
-
   loader.load(
-    modelPath,
+    MODEL_PATHS[idx],
     (gltf) => {
       model = gltf.scene;
-
-      const box = new THREE.Box3().setFromObject(model);
-      const center = box.getCenter(new THREE.Vector3());
+      modelBox.setFromObject(model);
+      const center = modelBox.getCenter(new THREE.Vector3());
       model.position.sub(center);
+      modelBox.setFromObject(model);
+
+      const size = new THREE.Vector3();
+      modelBox.getSize(size);
+      const aspect = window.innerWidth / window.innerHeight;
+      const fitByHeight = Math.max(size.y * 0.75, 0.8);
+      const fitByWidth = Math.max(size.x / (2 * Math.max(aspect, 0.5)) * 1.25, 0.8);
+      orthoSize = Math.max(fitByHeight, fitByWidth);
+      panOffset.set(0, 0);
+      updateCamera();
 
       scene.add(model);
-
-      model.traverse((child) => {
-        if (child.isMesh) {
-          clickableObjects.push(child);
-        }
-      });
-
-      status.textContent = "Model ready";
-      console.log("Model loaded from:", modelPath);
+      document.getElementById("status").textContent = "Papyrus loaded";
+      setTimeout(() => { document.getElementById("status").style.opacity = "0"; }, 2000);
+      setTimeout(() => {
+        document.getElementById("hint").style.opacity = "0";
+      }, 4000);
+      buildAnnotations();
     },
     undefined,
-    (error) => {
-      console.warn("Load failed for", modelPath, error);
-      loadModelAt(index + 1);
-    }
+    () => loadModelAt(idx + 1)
   );
 }
-
 loadModelAt(0);
 
-// ---------------------------
-// Raycaster
-// ---------------------------
+// ─── Annotation DOM ───
+const svgLayer = document.getElementById("annotationLayer");
+const cardEls = [];
+const lineEls = [];
 
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-window.addEventListener("click", (e) => {
-
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-
-  raycaster.setFromCamera(mouse, camera);
-
-  const hits = raycaster.intersectObjects(clickableObjects, true);
-
-  if (hits.length > 0) {
-
-    const mesh = hits[0].object;
-    const name = mesh.name;
-
-    console.log("Clicked:", name);
-
-    if (infoData[name]) {
-
-      showInfo(
-        infoData[name].title,
-        infoData[name].text
-      );
-
-    } else {
-
-      showInfo(
-        "Unknown Part",
-        "Mesh name: " + name
-      );
-
-    }
-
-  } else {
-
-    hideInfo();
-
-  }
-
-});
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    hideInfo();
-  }
-});
-
-// ---------------------------
-// Resize
-// ---------------------------
-
-window.addEventListener("resize", () => {
-
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-
-});
-
-// ---------------------------
-// Animate
-// ---------------------------
-
-function animate() {
-
-  requestAnimationFrame(animate);
-
-  controls.update();
-  renderer.render(scene, camera);
-
+function createCardEl(a) {
+  const card = document.createElement("div");
+  card.className = "info-card";
+  card.dataset.id = a.id;
+  card.innerHTML = `
+    <img class="tama-icon" src="${a.icon}" alt="${a.title}">
+    <div class="card-body">
+      <h4>${a.title}</h4>
+      <p>${a.text}</p>
+    </div>`;
+  document.body.appendChild(card);
+  return card;
 }
 
+function createSVGLine() {
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("stroke", "rgba(240,217,160,0.6)");
+  line.setAttribute("stroke-width", "1.5");
+  line.setAttribute("stroke-dasharray", "4 3");
+  svgLayer.appendChild(line);
+
+  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  dot.setAttribute("r", "3");
+  dot.setAttribute("fill", "#f0d9a0");
+  svgLayer.appendChild(dot);
+
+  return { line, dot };
+}
+
+// Project a world‐space point on the papyrus to screen coords
+function worldToScreen(nx, ny) {
+  if (!model) return { x: -999, y: -999 };
+  const size = new THREE.Vector3();
+  modelBox.getSize(size);
+  const min = modelBox.min;
+  const center = modelBox.getCenter(new THREE.Vector3());
+
+  // nx/ny are 0-1 on the visible front plane.
+  const wp = new THREE.Vector3(
+    min.x + nx * size.x,
+    min.y + (1 - ny) * size.y,
+    center.z
+  );
+  wp.applyMatrix4(model.matrixWorld);
+  wp.project(camera);
+
+  return {
+    x: (wp.x * 0.5 + 0.5) * window.innerWidth,
+    y: (-wp.y * 0.5 + 0.5) * window.innerHeight
+  };
+}
+
+let builtSide = null;
+
+function buildAnnotations() {
+  const side = showingFront ? "front" : "back";
+  if (side === builtSide) return;
+  builtSide = side;
+
+  // Clear old
+  cardEls.forEach(c => c.remove());
+  cardEls.length = 0;
+  lineEls.forEach(l => { l.line.remove(); l.dot.remove(); });
+  lineEls.length = 0;
+
+  const visible = annotations.filter(a => a.side === side);
+  visible.forEach((a, i) => {
+    const card = createCardEl(a);
+    cardEls.push(card);
+    lineEls.push(createSVGLine());
+
+    // Stagger fade-in
+    setTimeout(() => card.classList.add("visible"), 300 + i * 250);
+  });
+
+  positionAnnotations();
+}
+
+function positionAnnotations() {
+  const side = showingFront ? "front" : "back";
+  const visible = annotations.filter(a => a.side === side);
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const CARD_MARGIN = 12;
+
+  visible.forEach((a, i) => {
+    const card = cardEls[i];
+    const lg = lineEls[i];
+    if (!card || !lg) return;
+
+    const anchor = worldToScreen(a.anchorNorm[0], a.anchorNorm[1]);
+
+    // Place card to left or right of viewport centre
+    let cx, cy;
+    if (a.cardSide === "left") {
+      cx = CARD_MARGIN;
+      cy = anchor.y - 30;
+    } else {
+      cx = W - 210 - CARD_MARGIN;
+      cy = anchor.y - 30;
+    }
+    // Clamp vertically
+    cy = Math.max(CARD_MARGIN, Math.min(H - 100, cy));
+
+    card.style.left = cx + "px";
+    card.style.top = cy + "px";
+
+    // Line from anchor to edge of card
+    const lineEndX = a.cardSide === "left" ? cx + 210 : cx;
+    const lineEndY = cy + 24;
+
+    lg.dot.setAttribute("cx", anchor.x);
+    lg.dot.setAttribute("cy", anchor.y);
+    lg.line.setAttribute("x1", anchor.x);
+    lg.line.setAttribute("y1", anchor.y);
+    lg.line.setAttribute("x2", lineEndX);
+    lg.line.setAttribute("y2", lineEndY);
+
+    // Animate line drawing via stroke-dashoffset
+    const len = Math.hypot(lineEndX - anchor.x, lineEndY - anchor.y);
+    lg.line.setAttribute("stroke-dasharray", len);
+    lg.line.setAttribute("stroke-dashoffset", len);
+    lg.line.style.transition = "stroke-dashoffset 0.6s ease " + (0.3 + i * 0.25) + "s";
+
+    // Trigger draw
+    requestAnimationFrame(() => {
+      lg.line.setAttribute("stroke-dashoffset", "0");
+    });
+  });
+}
+
+// ─── Resize ───
+window.addEventListener("resize", () => {
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  updateCamera();
+  positionAnnotations();
+});
+
+// ─── Animate ───
+function animate() {
+  requestAnimationFrame(animate);
+
+  // Smooth flip
+  if (model && flipping) {
+    currentRotationY += (targetRotationY - currentRotationY) * 0.08;
+    if (Math.abs(targetRotationY - currentRotationY) < 0.005) {
+      currentRotationY = targetRotationY;
+      flipping = false;
+    }
+    model.rotation.y = currentRotationY;
+  }
+
+  renderer.render(scene, camera);
+  positionAnnotations();
+}
 animate();
 
 </script>
