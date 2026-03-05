@@ -44,6 +44,7 @@
       position: fixed; top: 12px; right: 12px;
       background: rgba(0,0,0,0.65); padding: 8px 12px;
       border-radius: 10px; font-size: 12px; z-index: 50;
+      transition: opacity 1s;
     }
 
     /* ── Flip button ── */
@@ -75,32 +76,67 @@
       pointer-events: none; z-index: 30;
     }
 
-    /* ── Info cards ── */
-    .info-card {
+    /* ── Numbered hotspot markers ── */
+    .hotspot {
       position: absolute;
-      background: rgba(0,0,0,0.78);
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 12px;
-      padding: 10px 14px 10px 10px;
-      max-width: 210px;
-      display: flex; align-items: flex-start; gap: 8px;
-      pointer-events: auto; z-index: 40;
-      opacity: 0;
-      transition: opacity 0.5s ease;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: rgba(240,217,160,0.85);
+      color: #1a1a1a;
+      font-family: "TamaConnect", sans-serif;
+      font-size: 15px; font-weight: bold;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      z-index: 40;
+      pointer-events: auto;
+      border: 2px solid rgba(255,255,255,0.4);
+      box-shadow: 0 0 10px rgba(240,217,160,0.4);
+      transition: transform 0.2s, box-shadow 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
-    .info-card.visible { opacity: 1; }
-    .info-card img.tama-icon {
-      width: 32px; height: 32px; flex-shrink: 0;
+    .hotspot:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 18px rgba(240,217,160,0.7);
+    }
+    .hotspot.active {
+      background: #f0d9a0;
+      box-shadow: 0 0 20px rgba(240,217,160,0.9);
+    }
+
+    /* ── Info card (single, shown on click) ── */
+    #infoCard {
+      position: fixed;
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      padding: 14px 16px;
+      max-width: 260px;
+      display: none;
+      align-items: flex-start; gap: 10px;
+      z-index: 45;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+    #infoCard.visible { opacity: 1; display: flex; }
+    #infoCard img.tama-icon {
+      width: 38px; height: 38px; flex-shrink: 0;
       margin-top: 2px;
     }
-    .info-card .card-body h4 {
-      font-size: 13px; margin-bottom: 4px;
+    #infoCard .card-body h4 {
+      font-size: 14px; margin-bottom: 5px;
       color: #f0d9a0;
     }
-    .info-card .card-body p {
-      font-size: 11px; line-height: 1.45;
+    #infoCard .card-body p {
+      font-size: 12px; line-height: 1.5;
       color: #ccc;
     }
+    #infoCard .close-btn {
+      position: absolute; top: 6px; right: 10px;
+      background: none; border: none; color: #888;
+      font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    #infoCard .close-btn:hover { color: #fff; }
 
     /* ── Side label (front / back) ── */
     #sideLabel {
@@ -117,83 +153,79 @@
 <a id="backLink" href="../index.html">&larr; Back</a>
 <div id="status">Loading model…</div>
 <div id="sideLabel">Front</div>
-<div id="hint">Drag to pan · Pinch / scroll to zoom</div>
+<div id="hint">Tap a number to learn about the papyrus</div>
 <button id="flipBtn">&#x21C5; Flip Over</button>
 
-<!-- SVG for animated annotation lines -->
 <svg id="annotationLayer"></svg>
 
-<!-- Info cards will be created by JS -->
+<!-- Single reusable info card -->
+<div id="infoCard">
+  <img class="tama-icon" id="cardIcon" src="" alt="">
+  <div class="card-body">
+    <h4 id="cardTitle"></h4>
+    <p id="cardText"></p>
+  </div>
+  <button class="close-btn" id="cardClose">&times;</button>
+</div>
 
 <script type="module">
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
+// ─── Detect mobile ───
+const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent)
+  || (navigator.maxTouchPoints > 1 && window.innerWidth < 1024);
+
 // ─── Annotation data ───
-// anchorNorm: normalised position on paperus (0-1, 0-1), cardSide: "left"|"right"
 const annotations = [
   {
-    id: "harvesting",
-    title: "Harvesting",
+    id: "harvesting", num: 1,
+    title: "1 · Harvesting",
     text: "The stocks of a cyperus papyrus are collected and the outer rind is removed, exposing the inner pith.",
     icon: "../FIP%20Tamagotchis/CuneiformEgg1.svg",
-    anchorNorm: [0.20, 0.18],
-    cardSide: "left",
-    side: "front"
+    anchorNorm: [0.22, 0.18], cardSide: "left", side: "front"
   },
   {
-    id: "cutting",
-    title: "Cutting",
+    id: "cutting", num: 2,
+    title: "2 · Cutting",
     text: "The inner pith is cut into thin strips approximately 40 cm long.",
     icon: "../FIP%20Tamagotchis/BrokenCyperusPapyrus1.svg",
-    anchorNorm: [0.80, 0.22],
-    cardSide: "right",
-    side: "front"
+    anchorNorm: [0.78, 0.22], cardSide: "right", side: "front"
   },
   {
-    id: "soaking",
-    title: "Soaking",
+    id: "soaking", num: 3,
+    title: "3 · Soaking",
     text: "The strips are soaked in water for several days to soften them.",
     icon: "../FIP%20Tamagotchis/SoakedPapyrus1.svg",
-    anchorNorm: [0.25, 0.50],
-    cardSide: "left",
-    side: "front"
+    anchorNorm: [0.25, 0.48], cardSide: "left", side: "front"
   },
   {
-    id: "weaving",
-    title: "Weaving",
+    id: "weaving", num: 4,
+    title: "4 · Weaving",
     text: "The thin soaked strips are laid out in perpendicular layers and pressed together.",
     icon: "../FIP%20Tamagotchis/PerpendicularPapyrus1.svg",
-    anchorNorm: [0.75, 0.50],
-    cardSide: "right",
-    side: "front"
+    anchorNorm: [0.75, 0.52], cardSide: "right", side: "front"
   },
   {
-    id: "drying",
-    title: "Drying",
+    id: "drying", num: 5,
+    title: "5 · Drying",
     text: "The layers are pressed under wooden boards for several days to flatten and dry, forming a smooth writing surface.",
     icon: "../FIP%20Tamagotchis/PapyrusPaper1.svg",
-    anchorNorm: [0.30, 0.78],
-    cardSide: "left",
-    side: "front"
+    anchorNorm: [0.30, 0.78], cardSide: "left", side: "front"
   },
   {
-    id: "writing",
-    title: "Writing",
+    id: "writing", num: 6,
+    title: "6 · Writing",
     text: "Ink is made by burning organic materials, pulverizing the soot, and mixing with water and acacia gum binder. This stable ink does not fade or damage the papyrus.",
     icon: "../FIP%20Tamagotchis/PapyrusScroll1.svg",
-    anchorNorm: [0.70, 0.82],
-    cardSide: "right",
-    side: "front"
+    anchorNorm: [0.72, 0.80], cardSide: "right", side: "front"
   },
   {
-    id: "backboard",
-    title: "Backboard",
+    id: "backboard", num: 1,
+    title: "1 · Backboard",
     text: "This papyrus was glued onto a backboard by previous curators to preserve it. Unfortunately, this can cause the material to break down, stain, or warp.",
     icon: "../FIP%20Tamagotchis/CyperusPapyrus1.svg",
-    anchorNorm: [0.50, 0.45],
-    cardSide: "right",
-    side: "back"
+    anchorNorm: [0.50, 0.45], cardSide: "right", side: "back"
   }
 ];
 
@@ -215,11 +247,16 @@ const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
 dirLight.position.set(2, 2, 6);
 scene.add(dirLight);
 
-// ─── Camera helpers (ortho zoom & pan, NO rotation) ───
+// ─── Camera state ───
 let orthoSize = 1.2;
+let targetOrthoSize = 1.2;
 const panOffset = new THREE.Vector2(0, 0);
-const MIN_ZOOM = 0.4;
-const MAX_ZOOM = 3.0;
+const targetPanOffset = new THREE.Vector2(0, 0);
+let defaultOrthoSize = 1.2;
+let zoomedOutSize = 2.0;
+const MIN_ZOOM = 0.3;
+const MAX_ZOOM = 3.5;
+let animatingCamera = false;
 
 function updateCamera() {
   const aspect = window.innerWidth / window.innerHeight;
@@ -230,6 +267,12 @@ function updateCamera() {
   camera.updateProjectionMatrix();
 }
 updateCamera();
+
+function smoothCameraTo(size, px, py) {
+  targetOrthoSize = size;
+  targetPanOffset.set(px, py);
+  animatingCamera = true;
+}
 
 // ─── Pointer pan ───
 let pointerDown = false;
@@ -252,6 +295,8 @@ renderer.domElement.addEventListener("pointermove", (e) => {
   const scale = (orthoSize * 2) / window.innerHeight;
   panOffset.x -= dx * scale;
   panOffset.y += dy * scale;
+  targetPanOffset.copy(panOffset);
+  targetOrthoSize = orthoSize;
   lastPointer.x = e.clientX;
   lastPointer.y = e.clientY;
   updateCamera();
@@ -282,20 +327,20 @@ renderer.domElement.addEventListener("touchmove", (e) => {
     );
     const ratio = lastPinchDist / dist;
     orthoSize = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, orthoSize * ratio));
+    targetOrthoSize = orthoSize;
     lastPinchDist = dist;
     updateCamera();
   }
 }, { passive: true });
 
-renderer.domElement.addEventListener("touchend", (e) => {
-  touchCount = e.touches.length;
-});
+renderer.domElement.addEventListener("touchend", (e) => { touchCount = e.touches.length; });
 
 // ─── Scroll zoom (mouse) ───
 renderer.domElement.addEventListener("wheel", (e) => {
   e.preventDefault();
   orthoSize *= e.deltaY > 0 ? 1.08 : 0.93;
   orthoSize = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, orthoSize));
+  targetOrthoSize = orthoSize;
   updateCamera();
 }, { passive: false });
 
@@ -309,11 +354,13 @@ const flipBtn = document.getElementById("flipBtn");
 const sideLabel = document.getElementById("sideLabel");
 
 flipBtn.addEventListener("click", () => {
+  closeInfoCard();
   showingFront = !showingFront;
   targetRotationY = showingFront ? 0 : Math.PI;
   sideLabel.textContent = showingFront ? "Front" : "Back";
   flipping = true;
-  buildAnnotations();
+  builtSide = null;
+  buildHotspots();
 });
 
 // ─── Load model ───
@@ -339,19 +386,21 @@ function loadModelAt(idx) {
       const size = new THREE.Vector3();
       modelBox.getSize(size);
       const aspect = window.innerWidth / window.innerHeight;
-      const fitByHeight = Math.max(size.y * 0.75, 0.8);
-      const fitByWidth = Math.max(size.x / (2 * Math.max(aspect, 0.5)) * 1.25, 0.8);
-      orthoSize = Math.max(fitByHeight, fitByWidth);
+      const fitH = Math.max(size.y * 0.75, 0.8);
+      const fitW = Math.max(size.x / (2 * Math.max(aspect, 0.5)) * 1.25, 0.8);
+      defaultOrthoSize = Math.max(fitH, fitW);
+      zoomedOutSize = defaultOrthoSize * 1.6;
+      orthoSize = defaultOrthoSize;
+      targetOrthoSize = defaultOrthoSize;
       panOffset.set(0, 0);
+      targetPanOffset.set(0, 0);
       updateCamera();
 
       scene.add(model);
       document.getElementById("status").textContent = "Papyrus loaded";
       setTimeout(() => { document.getElementById("status").style.opacity = "0"; }, 2000);
-      setTimeout(() => {
-        document.getElementById("hint").style.opacity = "0";
-      }, 4000);
-      buildAnnotations();
+      setTimeout(() => { document.getElementById("hint").style.opacity = "0"; }, 5000);
+      buildHotspots();
     },
     undefined,
     () => loadModelAt(idx + 1)
@@ -359,53 +408,18 @@ function loadModelAt(idx) {
 }
 loadModelAt(0);
 
-// ─── Annotation DOM ───
-const svgLayer = document.getElementById("annotationLayer");
-const cardEls = [];
-const lineEls = [];
-
-function createCardEl(a) {
-  const card = document.createElement("div");
-  card.className = "info-card";
-  card.dataset.id = a.id;
-  card.innerHTML = `
-    <img class="tama-icon" src="${a.icon}" alt="${a.title}">
-    <div class="card-body">
-      <h4>${a.title}</h4>
-      <p>${a.text}</p>
-    </div>`;
-  document.body.appendChild(card);
-  return card;
-}
-
-function createSVGLine() {
-  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  line.setAttribute("stroke", "rgba(240,217,160,0.6)");
-  line.setAttribute("stroke-width", "1.5");
-  line.setAttribute("stroke-dasharray", "4 3");
-  svgLayer.appendChild(line);
-
-  const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  dot.setAttribute("r", "3");
-  dot.setAttribute("fill", "#f0d9a0");
-  svgLayer.appendChild(dot);
-
-  return { line, dot };
-}
-
-// Project a world‐space point on the papyrus to screen coords
+// ─── Project world → screen ───
 function worldToScreen(nx, ny) {
   if (!model) return { x: -999, y: -999 };
   const size = new THREE.Vector3();
   modelBox.getSize(size);
   const min = modelBox.min;
-  const center = modelBox.getCenter(new THREE.Vector3());
+  const ctr = modelBox.getCenter(new THREE.Vector3());
 
-  // nx/ny are 0-1 on the visible front plane.
   const wp = new THREE.Vector3(
     min.x + nx * size.x,
     min.y + (1 - ny) * size.y,
-    center.z
+    ctr.z
   );
   wp.applyMatrix4(model.matrixWorld);
   wp.project(camera);
@@ -416,90 +430,190 @@ function worldToScreen(nx, ny) {
   };
 }
 
+// ─── Hotspot markers ───
+let hotspotEls = [];
 let builtSide = null;
+// Desktop drift: each hotspot gets random phase/amplitude
+let driftData = [];
 
-function buildAnnotations() {
+function buildHotspots() {
   const side = showingFront ? "front" : "back";
   if (side === builtSide) return;
   builtSide = side;
 
   // Clear old
-  cardEls.forEach(c => c.remove());
-  cardEls.length = 0;
-  lineEls.forEach(l => { l.line.remove(); l.dot.remove(); });
-  lineEls.length = 0;
+  hotspotEls.forEach(h => h.remove());
+  hotspotEls = [];
+  driftData = [];
 
   const visible = annotations.filter(a => a.side === side);
   visible.forEach((a, i) => {
-    const card = createCardEl(a);
-    cardEls.push(card);
-    lineEls.push(createSVGLine());
+    const el = document.createElement("div");
+    el.className = "hotspot";
+    el.textContent = a.num;
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openInfoCard(a, i);
+    });
+    document.body.appendChild(el);
+    hotspotEls.push(el);
 
-    // Stagger fade-in
-    setTimeout(() => card.classList.add("visible"), 300 + i * 250);
-  });
-
-  positionAnnotations();
-}
-
-function positionAnnotations() {
-  const side = showingFront ? "front" : "back";
-  const visible = annotations.filter(a => a.side === side);
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  const CARD_MARGIN = 12;
-
-  visible.forEach((a, i) => {
-    const card = cardEls[i];
-    const lg = lineEls[i];
-    if (!card || !lg) return;
-
-    const anchor = worldToScreen(a.anchorNorm[0], a.anchorNorm[1]);
-
-    // Place card to left or right of viewport centre
-    let cx, cy;
-    if (a.cardSide === "left") {
-      cx = CARD_MARGIN;
-      cy = anchor.y - 30;
-    } else {
-      cx = W - 210 - CARD_MARGIN;
-      cy = anchor.y - 30;
-    }
-    // Clamp vertically
-    cy = Math.max(CARD_MARGIN, Math.min(H - 100, cy));
-
-    card.style.left = cx + "px";
-    card.style.top = cy + "px";
-
-    // Line from anchor to edge of card
-    const lineEndX = a.cardSide === "left" ? cx + 210 : cx;
-    const lineEndY = cy + 24;
-
-    lg.dot.setAttribute("cx", anchor.x);
-    lg.dot.setAttribute("cy", anchor.y);
-    lg.line.setAttribute("x1", anchor.x);
-    lg.line.setAttribute("y1", anchor.y);
-    lg.line.setAttribute("x2", lineEndX);
-    lg.line.setAttribute("y2", lineEndY);
-
-    // Animate line drawing via stroke-dashoffset
-    const len = Math.hypot(lineEndX - anchor.x, lineEndY - anchor.y);
-    lg.line.setAttribute("stroke-dasharray", len);
-    lg.line.setAttribute("stroke-dashoffset", len);
-    lg.line.style.transition = "stroke-dashoffset 0.6s ease " + (0.3 + i * 0.25) + "s";
-
-    // Trigger draw
-    requestAnimationFrame(() => {
-      lg.line.setAttribute("stroke-dashoffset", "0");
+    // Random drift params for desktop
+    driftData.push({
+      phaseX: Math.random() * Math.PI * 2,
+      phaseY: Math.random() * Math.PI * 2,
+      ampX: 2 + Math.random() * 4,
+      ampY: 2 + Math.random() * 3,
+      speedX: 0.3 + Math.random() * 0.5,
+      speedY: 0.4 + Math.random() * 0.4
     });
   });
+
+  positionHotspots();
 }
+
+function positionHotspots() {
+  const side = showingFront ? "front" : "back";
+  const visible = annotations.filter(a => a.side === side);
+  const t = performance.now() / 1000;
+
+  visible.forEach((a, i) => {
+    const el = hotspotEls[i];
+    if (!el) return;
+    const pos = worldToScreen(a.anchorNorm[0], a.anchorNorm[1]);
+
+    let dx = 0, dy = 0;
+    if (!isMobile && driftData[i]) {
+      const d = driftData[i];
+      dx = Math.sin(t * d.speedX + d.phaseX) * d.ampX;
+      dy = Math.cos(t * d.speedY + d.phaseY) * d.ampY;
+    }
+
+    el.style.left = (pos.x - 16 + dx) + "px";
+    el.style.top  = (pos.y - 16 + dy) + "px";
+  });
+}
+
+// ─── Info card logic ───
+const infoCard = document.getElementById("infoCard");
+const cardIcon = document.getElementById("cardIcon");
+const cardTitle = document.getElementById("cardTitle");
+const cardText = document.getElementById("cardText");
+const cardClose = document.getElementById("cardClose");
+const svgLayer = document.getElementById("annotationLayer");
+
+let activeAnnotation = null;
+let activeLine = null;
+let activeDot = null;
+
+function openInfoCard(a, hotspotIdx) {
+  // Mark active hotspot
+  hotspotEls.forEach(h => h.classList.remove("active"));
+  if (hotspotEls[hotspotIdx]) hotspotEls[hotspotIdx].classList.add("active");
+
+  activeAnnotation = a;
+
+  // Populate card
+  cardIcon.src = a.icon;
+  cardIcon.alt = a.title;
+  cardTitle.textContent = a.title;
+  cardText.textContent = a.text;
+  infoCard.style.display = "flex";
+  requestAnimationFrame(() => infoCard.classList.add("visible"));
+
+  // Smooth zoom out so card + papyrus both fit
+  smoothCameraTo(zoomedOutSize, 0, 0);
+
+  // Create SVG line + dot
+  clearLine();
+  activeLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  activeLine.setAttribute("stroke", "rgba(240,217,160,0.6)");
+  activeLine.setAttribute("stroke-width", "1.5");
+  svgLayer.appendChild(activeLine);
+
+  activeDot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+  activeDot.setAttribute("r", "4");
+  activeDot.setAttribute("fill", "#f0d9a0");
+  svgLayer.appendChild(activeDot);
+
+  positionInfoCard();
+}
+
+function closeInfoCard() {
+  infoCard.classList.remove("visible");
+  setTimeout(() => { infoCard.style.display = "none"; }, 300);
+  activeAnnotation = null;
+  hotspotEls.forEach(h => h.classList.remove("active"));
+  clearLine();
+
+  // Zoom back to default
+  smoothCameraTo(defaultOrthoSize, 0, 0);
+}
+
+function clearLine() {
+  if (activeLine) { activeLine.remove(); activeLine = null; }
+  if (activeDot)  { activeDot.remove();  activeDot = null;  }
+}
+
+function positionInfoCard() {
+  if (!activeAnnotation) return;
+  const a = activeAnnotation;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const anchor = worldToScreen(a.anchorNorm[0], a.anchorNorm[1]);
+
+  const CARD_W = 260;
+  const MARGIN = 16;
+  let cx, cy;
+
+  if (a.cardSide === "left") {
+    cx = MARGIN;
+  } else {
+    cx = W - CARD_W - MARGIN;
+  }
+  cy = Math.max(MARGIN, Math.min(H - 160, anchor.y - 40));
+
+  infoCard.style.left = cx + "px";
+  infoCard.style.top = cy + "px";
+
+  // Line from anchor dot to card edge
+  if (activeLine && activeDot) {
+    const lineEndX = a.cardSide === "left" ? cx + CARD_W : cx;
+    const lineEndY = cy + 30;
+
+    activeDot.setAttribute("cx", anchor.x);
+    activeDot.setAttribute("cy", anchor.y);
+    activeLine.setAttribute("x1", anchor.x);
+    activeLine.setAttribute("y1", anchor.y);
+    activeLine.setAttribute("x2", lineEndX);
+    activeLine.setAttribute("y2", lineEndY);
+
+    const len = Math.hypot(lineEndX - anchor.x, lineEndY - anchor.y);
+    activeLine.setAttribute("stroke-dasharray", len);
+    activeLine.setAttribute("stroke-dashoffset", len);
+    activeLine.style.transition = "stroke-dashoffset 0.5s ease";
+    requestAnimationFrame(() => {
+      if (activeLine) activeLine.setAttribute("stroke-dashoffset", "0");
+    });
+  }
+}
+
+cardClose.addEventListener("click", (e) => { e.stopPropagation(); closeInfoCard(); });
+
+// Close on background click or Escape
+renderer.domElement.addEventListener("click", () => {
+  if (!pointerMoved && activeAnnotation) closeInfoCard();
+});
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeInfoCard();
+});
 
 // ─── Resize ───
 window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   updateCamera();
-  positionAnnotations();
+  positionHotspots();
+  positionInfoCard();
 });
 
 // ─── Animate ───
@@ -516,8 +630,24 @@ function animate() {
     model.rotation.y = currentRotationY;
   }
 
+  // Smooth camera zoom/pan
+  if (animatingCamera) {
+    orthoSize += (targetOrthoSize - orthoSize) * 0.08;
+    panOffset.x += (targetPanOffset.x - panOffset.x) * 0.08;
+    panOffset.y += (targetPanOffset.y - panOffset.y) * 0.08;
+    if (Math.abs(targetOrthoSize - orthoSize) < 0.002
+     && Math.abs(targetPanOffset.x - panOffset.x) < 0.002
+     && Math.abs(targetPanOffset.y - panOffset.y) < 0.002) {
+      orthoSize = targetOrthoSize;
+      panOffset.copy(targetPanOffset);
+      animatingCamera = false;
+    }
+    updateCamera();
+  }
+
   renderer.render(scene, camera);
-  positionAnnotations();
+  positionHotspots();
+  if (activeAnnotation) positionInfoCard();
 }
 animate();
 
