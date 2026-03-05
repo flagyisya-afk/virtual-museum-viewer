@@ -3,16 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Interactive GLTF Viewer</title>
-
-  <script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
-    "three/examples/jsm/": "https://unpkg.com/three@0.158.0/examples/jsm/"
-  }
-}
-</script>
+  <title>Papyrus Info Viewer</title>
 
   <!-- Custom Font -->
   <style>
@@ -41,6 +32,7 @@
       text-align: center;
       display: none;
       box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+      z-index: 20;
     }
 
     #infoBox h3 {
@@ -63,11 +55,42 @@
       padding: 8px 14px;
       border-radius: 8px;
       font-size: 13px;
+      z-index: 20;
+    }
+
+    #status {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      z-index: 20;
+    }
+
+    #backLink {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0, 0, 0, 0.7);
+      color: #ffffff;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 20;
+    }
+
+    #backLink:hover {
+      background: rgba(255, 255, 255, 0.15);
     }
   </style>
 </head>
 <body>
+  <a id="backLink" href="../index.html">Back to Main Menu</a>
   <div id="hint">Drag to rotate • Scroll to zoom • Click on details</div>
+  <div id="status">Loading model...</div>
 
   <div id="infoBox">
     <h3 id="infoTitle"></h3>
@@ -86,19 +109,13 @@ import { GLTFLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders
 // ---------------------------
 
 const infoData = {
-  "Object_1": {
-    title: "Papyrus Fiber",
-    text: "This area shows the woven plant fibers."
+  "Object_4": {
+    title: "Papyrus Fragment",
+    text: "A Byzantine-medieval papyrus surface with visible fiber texture and age wear."
   },
-
-  "Object_2": {
-    title: "Ink Fragment",
-    text: "Traces of ancient writing remain here."
-  },
-
-  "Object_3": {
-    title: "Damaged Edge",
-    text: "A worn edge caused by aging."
+  "Object_0": {
+    title: "Papyrus Fragment",
+    text: "A Byzantine-medieval papyrus surface with visible fiber texture and age wear."
   }
 };
 
@@ -130,6 +147,7 @@ document.body.appendChild(renderer.domElement);
 const infoBox = document.getElementById("infoBox");
 const infoTitle = document.getElementById("infoTitle");
 const infoText = document.getElementById("infoText");
+const status = document.getElementById("status");
 
 function showInfo(title, text) {
   infoTitle.textContent = title;
@@ -164,44 +182,48 @@ scene.add(light);
 
 const loader = new GLTFLoader();
 
-const MODEL_PATH = "model.gltf";
+const MODEL_PATHS = ["../byzantine-medieval_papyrus.glb", "model.gltf"];
 
 let model;
 const clickableObjects = [];
 
-loader.load(
-
-  MODEL_PATH,
-
-  (gltf) => {
-
-    model = gltf.scene;
-
-    // Center model
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.sub(center);
-
-    scene.add(model);
-
-    model.traverse((child) => {
-      if (child.isMesh) {
-        clickableObjects.push(child);
-      }
-    });
-
-    console.log("Model loaded!");
-
-  },
-
-  undefined,
-
-  (error) => {
-    console.error("GLTF ERROR:", error);
-    alert("Model failed to load — check console.");
+function loadModelAt(index) {
+  if (index >= MODEL_PATHS.length) {
+    status.textContent = "Model failed to load";
+    return;
   }
 
-);
+  const modelPath = MODEL_PATHS[index];
+
+  loader.load(
+    modelPath,
+    (gltf) => {
+      model = gltf.scene;
+
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      model.position.sub(center);
+
+      scene.add(model);
+
+      model.traverse((child) => {
+        if (child.isMesh) {
+          clickableObjects.push(child);
+        }
+      });
+
+      status.textContent = "Model ready";
+      console.log("Model loaded from:", modelPath);
+    },
+    undefined,
+    (error) => {
+      console.warn("Load failed for", modelPath, error);
+      loadModelAt(index + 1);
+    }
+  );
+}
+
+loadModelAt(0);
 
 // ---------------------------
 // Raycaster
@@ -248,6 +270,12 @@ window.addEventListener("click", (e) => {
 
   }
 
+});
+
+window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    hideInfo();
+  }
 });
 
 // ---------------------------
