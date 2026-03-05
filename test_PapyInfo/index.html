@@ -1024,11 +1024,18 @@ function animate() {
     gestureLabelEl.textContent = gestureLabel;
   }
 
-  // Two-pass render: scene → target, then post-process lens → screen
-  renderer.setRenderTarget(sceneTarget);
-  renderer.render(scene, camera);
-  renderer.setRenderTarget(null);
-  renderer.render(postScene, postCamera);
+  // Only use 2-pass lens pipeline when the lens effect is visible;
+  // otherwise render directly (avoids color-space darkening).
+  const lensActive = postMaterial.uniforms.uEnabled.value > 0.005;
+  if (lensActive) {
+    renderer.setRenderTarget(sceneTarget);
+    renderer.render(scene, camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene, postCamera);
+  } else {
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+  }
 
   positionHotspots();
   if (activeAnnotation) positionInfoCard();
