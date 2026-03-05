@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
   <title>Papyrus Info</title>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+      "three/examples/jsm/": "https://unpkg.com/three@0.158.0/examples/jsm/"
+    }
+  }
+  </script>
   <style>
     @font-face {
       font-family: "TamaConnect";
@@ -118,8 +126,8 @@
 <!-- Info cards will be created by JS -->
 
 <script type="module">
-import * as THREE from "https://unpkg.com/three@0.158.0/build/three.module.js";
-import { GLTFLoader } from "https://unpkg.com/three@0.158.0/examples/jsm/loaders/GLTFLoader.js";
+import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 // ─── Annotation data ───
 // anchorNorm: normalised position on paperus (0-1, 0-1), cardSide: "left"|"right"
