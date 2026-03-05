@@ -316,12 +316,13 @@ dirLight.position.set(2, 2, 6);
 scene.add(dirLight);
 
 // Reveal spotlight that follows the hand
-const revealLight = new THREE.SpotLight(0xffefc9, 2.4, 6, Math.PI / 8, 0.42, 1.0);
+const revealLight = new THREE.SpotLight(0xffefc9, 0.0, 6, Math.PI / 8, 0.42, 1.0);
 revealLight.position.set(0, 0, 4);
 revealLight.castShadow = false;
 revealLight.target.position.set(0, 0, 0);
 revealLight.visible = false;
 scene.add(revealLight, revealLight.target);
+let revealLightTargetIntensity = 0.0;
 
 // ─── Post-processing magnifying-glass lens shader ───
 const lensCenter = new THREE.Vector2(0.5, 0.5);
@@ -828,7 +829,7 @@ async function startTracking() {
     await video.play();
 
     trackingActive = true;
-    revealLight.visible = true;
+    revealLightTargetIntensity = 0.0;
     gestureLabelEl.classList.add("visible");
 
     document.getElementById("status").style.opacity = "1";
@@ -848,6 +849,8 @@ function stopTracking() {
   freezeLens = false;
   gestureLabel = "none";
   wasPinch = false;
+  revealLightTargetIntensity = 0.0;
+  revealLight.intensity = 0.0;
   revealLight.visible = false;
   gestureLabelEl.classList.remove("visible");
 
@@ -879,6 +882,7 @@ function updateHandPoint() {
   const landmarks = result.landmarks?.[0];
   if (!landmarks) {
     lensVisible = false;
+    revealLightTargetIntensity = 0.0;
     gestureLabel = "no hand";
     return;
   }
@@ -908,6 +912,8 @@ function updateHandPoint() {
   if (freezeLens) {
     gestureLabel = gestures.pinch ? "freeze toggled" : "frozen (pinch to unfreeze)";
     lensVisible = true;
+    // Keep the magnifier frozen but do not keep projecting extra scene light.
+    revealLightTargetIntensity = 0.0;
     return;
   }
 
@@ -920,12 +926,14 @@ function updateHandPoint() {
   const intersects = raycaster.intersectObjects(papyrusHitMeshes, true);
   if (!intersects.length) {
     lensVisible = false;
+    revealLightTargetIntensity = 0.0;
     gestureLabel = "hand off papyrus";
     return;
   }
 
   const hit = intersects[0];
   lensVisible = true;
+  revealLightTargetIntensity = 0.9;
   if (gestures.pinch) gestureLabel = "freeze toggled";
 
   // Project hit point to screen UV for lens shader
@@ -944,6 +952,11 @@ function updateHandPoint() {
 
   revealLight.position.lerp(tempLightPos, 0.28);
   revealLight.target.position.lerp(tempTargetPos, 0.28);
+}
+
+function updateRevealLight() {
+  revealLight.intensity = THREE.MathUtils.lerp(revealLight.intensity, revealLightTargetIntensity, 0.2);
+  revealLight.visible = revealLight.intensity > 0.01;
 }
 
 // ── Smooth lens uniforms ──
@@ -1019,6 +1032,7 @@ function animate() {
   // Hand tracking
   updateHandPoint();
   updateLensUniforms();
+  updateRevealLight();
 
   if (trackingActive) {
     gestureLabelEl.textContent = gestureLabel;
