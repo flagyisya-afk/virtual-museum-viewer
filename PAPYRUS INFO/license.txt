@@ -1,0 +1,11 @@
+Model Information:
+* title:	Byzantine-Medieval Papyrus
+* source:	https://sketchfab.com/3d-models/byzantine-medieval-papyrus-6c2e2e130a244ed7a49d78df632652e8
+* author:	Thomas Flynn (https://sketchfab.com/nebulousflynn)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Byzantine-Medieval Papyrus" (https://sketchfab.com/3d-models/byzantine-medieval-papyrus-6c2e2e130a244ed7a49d78df632652e8) by Thomas Flynn (https://sketchfab.com/nebulousflynn) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
