@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>FIP Presents - Cary Collection Digital Twins Library</title>
+  <style>
+    @font-face {
+      font-family: 'TamaConnectType';
+      src: url('Menu/tamaconnecttype.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'TamaConnectType', Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #f3e7c6 0%, #e8d5a5 50%, #dcc08a 100%);
+      color: #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+      -webkit-text-size-adjust: 100%;
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+
+    h1 {
+      margin-bottom: 40px;
+      line-height: 1.3;
+      font-size: 2.5rem;
+      font-weight: 600;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 60px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .svg-button {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: inherit;
+      padding: 20px;
+      border-radius: 16px;
+      background: transparent;
+      box-shadow: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .svg-button:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .svg-button img {
+      width: 180px;
+      height: auto;
+      margin-bottom: 15px;
+    }
+
+    .svg-button span {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    .normal {
+      font-family: 'TamaConnectType', Arial, Helvetica, sans-serif;
+      font-weight: normal;
+    }
+
+    .small-top {
+      font-size: 1.1rem;
+    }
+
+    .small-bottom {
+      font-size: 2.4rem;
+      font-weight: 500;
+    }
+
+    .wide-icon {
+      width: 240px;
+      height: auto;
+    }
+
+    .nav-btn {
+      position: fixed;
+      background: transparent;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-family: 'TamaConnectType', Arial, Helvetica, sans-serif;
+      font-size: 1rem;
+      cursor: pointer;
+      box-shadow: none;
+      transition: background 0.2s ease, transform 0.2s ease;
+      z-index: 1000;
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+
+    .nav-btn:hover {
+      background: transparent;
+    }
+
+    .back-btn {
+      top: calc(15px + env(safe-area-inset-top, 0px));
+      left: calc(15px + env(safe-area-inset-left, 0px));
+    }
+
+    .home-btn {
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .home-btn:hover,
+    .home-btn:active {
+      transform: translateX(-50%);
+    }
+
+    .menu {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #papyrusMenu .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      margin-top: 40px;
+      padding-bottom: 140px;
+      align-items: center;
+    }
+
+    .home-icon {
+      width: 70px;
+      height: auto;
+      display: block;
+      margin: 0 auto 4px;
+    }
+
+    .home-label {
+      display: block;
+      font-size: 0.7rem;
+      text-align: center;
+      line-height: 1;
+      opacity: 0.8;
+    }
+
+    #homeBtn:hover .home-icon {
+      content: url('Menu/CyperusPapyrus1.svg');
+    }
+
+    @keyframes eggShake {
+      0% { transform: rotate(0deg); }
+      15% { transform: rotate(3deg); }
+      30% { transform: rotate(-3deg); }
+      45% { transform: rotate(3deg); }
+      60% { transform: rotate(-3deg); }
+      75% { transform: rotate(2deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .shake-icon:hover {
+      animation: eggShake 0.5s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+
+    .papyrus-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 60px;
+      margin-bottom: 20px;
+    }
+
+    .papyrus-header-icon {
+      width: 80px;
+      height: auto;
+      max-width: 100%;
+      margin-bottom: 15px;
+    }
+
+    .papyrus-title {
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    .cuneiform-header {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 60px;
+      margin-bottom: 20px;
+    }
+
+    .cuneiform-header-icon {
+      width: 80px;
+      height: auto;
+      max-width: 100%;
+      margin-bottom: 15px;
+    }
+
+    .cuneiform-title {
+      font-size: 2rem;
+      margin: 0;
+    }
+
+    #cuneiformMenu .button-container {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+      margin-top: 40px;
+      padding-bottom: 140px;
+      align-items: center;
+    }
+
+    #homeBtn.no-hover:hover .home-icon {
+      content: none;
+    }
+
+    @media (max-width: 1024px) {
+      h1 {
+        margin-bottom: 28px;
+        font-size: 2rem;
+      }
+
+      .button-container {
+        gap: 28px;
+      }
+
+      .svg-button {
+        min-width: 180px;
+        min-height: 64px;
+        padding: 16px;
+      }
+
+      .svg-button img {
+        width: 150px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      h1 {
+        font-size: 1.55rem;
+      }
+
+      .small-top {
+        font-size: 0.95rem;
+      }
+
+      .small-bottom {
+        font-size: 1.55rem;
+      }
+
+      .svg-button span {
+        font-size: 1rem;
+      }
+
+      .back-btn {
+        font-size: 0.95rem;
+      }
+
+      .home-icon {
+        width: 58px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <button id="backBtn" class="nav-btn back-btn" onclick="goBack()">← Back</button>
+
+  <button id="homeBtn" class="nav-btn home-btn" onclick="goHome()">
+    <img src="Menu/BrokenCyperusPapyrus1.svg" alt="Home" class="home-icon" id="homeIcon">
+    <span class="home-label">Home</span>
+  </button>
+
+  <div id="mainMenu" class="menu">
+
+    <h1 class="heading">
+      <span class="small-top">FIP Presents</span><br>
+      <span class="normal">Cary Collection</span><br>
+      <span class="small-bottom">Digital Twins Library</span>
+    </h1>
+
+    <div class="button-container">
+      <a href="#" class="svg-button" onclick="openCuneiformMenu(); return false;">
+        <img src="Menu/CuneiformEgg1.svg" alt="Cuneiform Tablet" class="shake-icon">
+        <span>Cuneiform Tablet</span>
+      </a>
+
+      <a href="#" class="svg-button" onclick="openPapyrusMenu(); return false;">
+        <img src="Menu/CyperusPapyrus1.svg" alt="Papyrus Roll" class="shake-icon">
+        <span>Papyrus Roll</span>
+      </a>
+    </div>
+
+  </div>
+
+  <div id="papyrusMenu" class="menu hidden">
+
+    <div class="papyrus-header">
+      <img src="Menu/SoakedPapyrus1.svg" alt="Soaked Papyrus" class="papyrus-header-icon">
+      <h1 class="papyrus-title">Papyrus Menu</h1>
+    </div>
+
+    <div class="button-container">
+      <a href="PAPYRUS%20INFO/infoboxesweb.html" class="svg-button">
+        <span>PAPYRUS INFO</span>
+      </a>
+
+      <a href="Projection_Mapping_HandTracking/" class="svg-button">
+        <span>MINI DISPLAY</span>
+      </a>
+
+      <a href="#" class="svg-button" onclick="return false;">
+        <span>PROJECT DOCUMENTATION</span>
+      </a>
+    </div>
+
+  </div>
+
+  <div id="cuneiformMenu" class="menu hidden">
+
+    <div class="cuneiform-header">
+      <img src="Menu/CuneiformEgg1.svg" alt="Cuneiform Tablet" class="cuneiform-header-icon">
+      <h1 class="cuneiform-title">Cuneiform Tablet Menu</h1>
+    </div>
+
+    <div class="button-container">
+      <a href="Museum_Artifact_Viewer/" class="svg-button">
+        <span>TABLET INFO</span>
+      </a>
+
+      <a href="Holographic_Display_Controller/" class="svg-button">
+        <span>CONNECT TO MAIN DISPLAY</span>
+      </a>
+
+      <a href="#" class="svg-button" onclick="return false;">
+        <span>PROJECT DOCUMENTATION</span>
+      </a>
+    </div>
+
+  </div>
+
+  <script>
+    const mainMenu = document.getElementById("mainMenu");
+    const papyrusMenu = document.getElementById("papyrusMenu");
+    const cuneiformMenu = document.getElementById("cuneiformMenu");
+    const backBtn = document.getElementById("backBtn");
+    const homeBtn = document.getElementById("homeBtn");
+
+    function openPapyrusMenu() {
+      mainMenu.classList.add("hidden");
+      papyrusMenu.classList.remove("hidden");
+      backBtn.style.display = "block";
+      homeBtn.style.display = "block";
+    }
+
+    function openCuneiformMenu() {
+      mainMenu.classList.add("hidden");
+      cuneiformMenu.classList.remove("hidden");
+      backBtn.style.display = "block";
+      homeBtn.style.display = "block";
+
+      const homeIcon = document.getElementById("homeIcon");
+      homeIcon.src = "Menu/CuneiformEgg1.svg";
+      homeBtn.classList.add("no-hover");
+    }
+
+    function goHome() {
+      papyrusMenu.classList.add("hidden");
+      cuneiformMenu.classList.add("hidden");
+      mainMenu.classList.remove("hidden");
+      backBtn.style.display = "none";
+      homeBtn.style.display = "none";
+
+      const homeIcon = document.getElementById("homeIcon");
+      homeIcon.src = "Menu/BrokenCyperusPapyrus1.svg";
+      homeBtn.classList.remove("no-hover");
+    }
+
+    function goBack() {
+      papyrusMenu.classList.add("hidden");
+      cuneiformMenu.classList.add("hidden");
+      mainMenu.classList.remove("hidden");
+      backBtn.style.display = "none";
+      homeBtn.style.display = "none";
+    }
+
+    backBtn.style.display = "none";
+    homeBtn.style.display = "none";
+  </script>
+
+</body>
+</html>
