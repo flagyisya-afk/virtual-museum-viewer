@@ -22,162 +22,14 @@ html, body {
 
 .position {
   position: absolute;
-  width: 40vmin;
-  height: 40vmin;
-  perspective: 800px;
+  width: 45vmin;
+  height: 45vmin;
 }
 
 canvas {
   width: 100%;
   height: 100%;
   display: block;
-}
-
-.controls {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: min(320px, calc(100vw - 20px));
-  max-height: calc(100vh - 20px);
-  overflow: auto;
-  padding: 12px;
-  background: rgba(0, 0, 0, 0.62);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 10px;
-  color: #f2f2f2;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  font-size: 12px;
-}
-
-.controls h2 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.controls p {
-  margin: 0;
-  line-height: 1.4;
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.controls .btns {
-  display: flex;
-  gap: 8px;
-}
-
-.controls .btns button {
-  flex: 1;
-}
-
-.controls button {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  background: rgba(255, 255, 255, 0.09);
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.controls button.primary {
-  background: rgba(214, 178, 109, 0.22);
-  border-color: rgba(214, 178, 109, 0.45);
-}
-
-.controls button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.readoutGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.readout {
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.readoutLabel {
-  display: block;
-  margin-bottom: 2px;
-  color: rgba(255, 255, 255, 0.62);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.readoutValue {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.calibrationGroup {
-  display: grid;
-  gap: 8px;
-}
-
-.controlRow {
-  display: grid;
-  gap: 4px;
-}
-
-.controlRow label {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  color: rgba(255, 255, 255, 0.86);
-}
-
-.controlRow input[type="range"] {
-  width: 100%;
-}
-
-.controlHelp {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
-}
-
-.cameraPanel {
-  position: relative;
-  overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #050505;
-  aspect-ratio: 4 / 3;
-}
-
-#cameraPreview,
-#trackingOverlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-#cameraPreview {
-  object-fit: cover;
-}
-
-#trackingOverlay {
-  pointer-events: none;
-}
-
-.reflectionPreview {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: #050505;
 }
 
 .pos-top {
@@ -195,13 +47,13 @@ canvas {
 .pos-left {
   left: 0;
   top: 50%;
-  transform: translateY(-50%) rotate(-90deg);
+  transform: translateY(-50%) rotate(90deg);
 }
 
 .pos-right {
   right: 0;
   top: 50%;
-  transform: translateY(-50%) rotate(90deg);
+  transform: translateY(-50%) rotate(-90deg);
 }
 
 #backLink {
@@ -223,65 +75,12 @@ canvas {
   background: rgba(255, 255, 255, 0.15);
 }
 
-@media (max-width: 900px) {
-  .controls {
-    max-height: min(55vh, calc(100vh - 20px));
-  }
-}
 </style>
 </head>
 
 <body>
 
 <a id="backLink" href="../index.html">&larr; Back</a>
-
-<div class="controls">
-  <h2>Chrome Ball Tracking</h2>
-  <p>One-person prototype for the 4-sided holographic display. Position the chrome sphere in the preview, then tune the ball mask until the face box moves inside it cleanly.</p>
-  <div id="trackStatus">Starting chrome-ball tracking...</div>
-  <div class="btns">
-    <button id="startTrackingBtn" class="primary">Start Tracking</button>
-    <button id="stopTrackingBtn">Stop</button>
-  </div>
-  <div class="readoutGrid">
-    <div class="readout">
-      <span class="readoutLabel">Azimuth</span>
-      <span class="readoutValue" id="azimuthReadout">0 deg</span>
-    </div>
-    <div class="readout">
-      <span class="readoutLabel">Elevation</span>
-      <span class="readoutValue" id="elevationReadout">0 deg</span>
-    </div>
-    <div class="readout">
-      <span class="readoutLabel">Depth</span>
-      <span class="readoutValue" id="depthReadout">0%</span>
-    </div>
-  </div>
-  <div class="cameraPanel">
-    <video id="cameraPreview" autoplay playsinline muted></video>
-    <canvas id="trackingOverlay"></canvas>
-  </div>
-  <canvas id="reflectionPreview" class="reflectionPreview"></canvas>
-  <div class="calibrationGroup">
-    <div class="controlRow">
-      <label for="ballCenterX">Ball center X <span id="ballCenterXValue">50%</span></label>
-      <input id="ballCenterX" type="range" min="20" max="80" value="50" />
-    </div>
-    <div class="controlRow">
-      <label for="ballCenterY">Ball center Y <span id="ballCenterYValue">52%</span></label>
-      <input id="ballCenterY" type="range" min="20" max="80" value="52" />
-    </div>
-    <div class="controlRow">
-      <label for="ballRadius">Ball radius <span id="ballRadiusValue">28%</span></label>
-      <input id="ballRadius" type="range" min="15" max="45" value="28" />
-    </div>
-    <div class="controlRow">
-      <label for="azimuthOffset">Azimuth offset <span id="azimuthOffsetValue">0 deg</span></label>
-      <input id="azimuthOffset" type="range" min="-180" max="180" value="0" />
-    </div>
-  </div>
-  <div class="controlHelp">Use the offset slider to align the detected face direction with the correct side of the pyramid. This prototype tracks one face and uses the chrome ball as a rough 360-degree direction sensor.</div>
-</div>
 
 <div class="position pos-top"><canvas id="view-top"></canvas></div>
 <div class="position pos-bottom"><canvas id="view-bottom"></canvas></div>
@@ -314,6 +113,13 @@ let centerY = 0;
 
 const pivot = new THREE.Object3D();
 modelGroup.add(pivot);
+
+const sidePivots = {};
+for (const side of ["top", "bottom", "left", "right"]) {
+  const p = new THREE.Object3D();
+  modelGroup.add(p);
+  sidePivots[side] = p;
+}
 
 const MODEL_URLS = [
   "./the_map_of_the_world_tablet.glb",
@@ -369,6 +175,12 @@ loadFirstAvailable(MODEL_URLS, (gltf) => {
   root.position.sub(center);
 
   pivot.add(root);
+
+  for (const side of ["top", "bottom", "left", "right"]) {
+    const clone = root.clone(true);
+    sidePivots[side].add(clone);
+  }
+
   cameraDist = Math.max(size.length() * scale * 1.2, 0.6);
 });
 
@@ -376,7 +188,7 @@ function createView(canvas) {
   const cam = new THREE.PerspectiveCamera(50, 1, 0.01, 200);
   const renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: false,
+    antialias: true,
     alpha: false,
     powerPreference: "high-performance"
   });
@@ -408,317 +220,124 @@ function resizeViews() {
 resizeViews();
 window.addEventListener("resize", resizeViews);
 
-const trackStatus = document.getElementById("trackStatus");
-const startTrackingBtn = document.getElementById("startTrackingBtn");
-const stopTrackingBtn = document.getElementById("stopTrackingBtn");
-const cameraPreview = document.getElementById("cameraPreview");
-const trackingOverlay = document.getElementById("trackingOverlay");
-const overlayContext = trackingOverlay.getContext("2d");
-const reflectionPreview = document.getElementById("reflectionPreview");
-const reflectionPreviewContext = reflectionPreview.getContext("2d");
+// Edit these values in code for your 4-camera setup.
+const MULTI_CAMERA_CONFIG = {
+  autoStart: true,
+  singleCameraTestMode: {
+    enabled: true,
+    side: "top"
+  },
+  detectIntervalMs: 66,
+  minDetectionConfidence: 0.55,
+  rotGainX: 0.45,
+  rotGainY: 0.55,
+  depthNearOffset: -0.10,
+  depthFarOffset: 0.18,
+  smoothingRotation: 0.07,
+  smoothingDepth: 0.05,
+  faceLostGraceMs: 500,
+  jitterThreshold: 0.02,
+  expectedFaceSize: {
+    min: 0.07,
+    max: 0.50
+  },
+  // Optional: set each camera's deviceId string to lock it to that side.
+  cameraDeviceIdsBySide: {
+    top: "",
+    bottom: "",
+    left: "",
+    right: ""
+  },
+  // Flip axes per side if a mounted camera appears mirrored/upside-down.
+  sideMapping: {
+    top: { invertX: false, invertY: false },
+    bottom: { invertX: false, invertY: false },
+    left: { invertX: false, invertY: false },
+    right: { invertX: false, invertY: false }
+  }
+};
 
-const azimuthReadout = document.getElementById("azimuthReadout");
-const elevationReadout = document.getElementById("elevationReadout");
-const depthReadout = document.getElementById("depthReadout");
+const SIDE_KEYS = ["top", "bottom", "left", "right"];
+const sideVideo = {};
+const sideStream = {};
+const sideLastDetectTime = {
+  top: 0,
+  bottom: 0,
+  left: 0,
+  right: 0
+};
 
-const ballCenterXInput = document.getElementById("ballCenterX");
-const ballCenterYInput = document.getElementById("ballCenterY");
-const ballRadiusInput = document.getElementById("ballRadius");
-const azimuthOffsetInput = document.getElementById("azimuthOffset");
+function makeSideState() {
+  return {
+    hasFace: false, lastFaceTime: 0,
+    rotX: 0, rotY: 0,
+    targetRotX: 0, targetRotY: 0,
+    depthOffset: 0, targetDepthOffset: 0,
+    prevNormX: 0, prevNormY: 0, prevFaceSize: 0
+  };
+}
 
-const ballCenterXValue = document.getElementById("ballCenterXValue");
-const ballCenterYValue = document.getElementById("ballCenterYValue");
-const ballRadiusValue = document.getElementById("ballRadiusValue");
-const azimuthOffsetValue = document.getElementById("azimuthOffsetValue");
+const sideTrackingState = {
+  top: makeSideState(),
+  bottom: makeSideState(),
+  left: makeSideState(),
+  right: makeSideState()
+};
 
-let rotX = 0;
-let rotY = 0;
-let targetX = 0;
-let targetY = 0;
-let viewerDepthOffset = 0;
-let targetDepthOffset = 0;
-
-let chromeTrackingActive = false;
-let faceDetector = null;
+let multiCameraTrackingActive = false;
 let trackingLoopId = null;
-let trackingStream = null;
-let lastDetectTime = 0;
-
-const DETECT_INTERVAL_MS = 40;
-const REFLECTION_FRAME_SIZE = 512;
-const tempNormal = new THREE.Vector3();
-const tempReflection = new THREE.Vector3();
-const cameraIncident = new THREE.Vector3(0, 0, -1);
-
-const reflectionCanvas = document.createElement("canvas");
-reflectionCanvas.width = REFLECTION_FRAME_SIZE;
-reflectionCanvas.height = REFLECTION_FRAME_SIZE;
-const reflectionContext = reflectionCanvas.getContext("2d", { willReadFrequently: true });
-
-const trackingCalibration = {
-  centerX: Number(ballCenterXInput.value) / 100,
-  centerY: Number(ballCenterYInput.value) / 100,
-  radius: Number(ballRadiusInput.value) / 100,
-  azimuthOffsetDeg: Number(azimuthOffsetInput.value)
-};
-
-const trackingState = {
-  face: null,
-  mapped: null,
-  sourceFace: null,
-  reflectionBounds: null
-};
-
-let currentTrackStatus = "Tracking: controller input";
+let faceDetector = null;
 
 const channel = new BroadcastChannel("hologram-control");
 
+// Fallback controller rotation when side tracking is unavailable.
+let fallbackRotX = 0;
+let fallbackRotY = 0;
+let fallbackTargetX = 0;
+let fallbackTargetY = 0;
+
 channel.onmessage = (event) => {
-  if (chromeTrackingActive) return;
+  if (multiCameraTrackingActive) return;
   const data = event.data;
   if (!data) return;
 
-  targetX = data.rotX ?? 0;
-  targetY = data.rotY ?? 0;
+  fallbackTargetX = data.rotX ?? 0;
+  fallbackTargetY = data.rotY ?? 0;
 };
 
-function setButtonState() {
-  startTrackingBtn.disabled = chromeTrackingActive;
-  stopTrackingBtn.disabled = !chromeTrackingActive;
-}
-
-function normalizeAngle(angle) {
+function normalizeAngleRadians(angle) {
   return Math.atan2(Math.sin(angle), Math.cos(angle));
 }
 
 function smoothAngle(current, next, alpha) {
-  const delta = normalizeAngle(next - current);
+  const delta = normalizeAngleRadians(next - current);
   return current + delta * alpha;
 }
 
-function formatDegrees(radians) {
-  return `${Math.round(THREE.MathUtils.radToDeg(radians))} deg`;
+function setSideStatus(sideKey, message) {
+  console.info(`[${sideKey}] ${message}`);
 }
 
-function syncCalibrationLabels() {
-  trackingCalibration.centerX = Number(ballCenterXInput.value) / 100;
-  trackingCalibration.centerY = Number(ballCenterYInput.value) / 100;
-  trackingCalibration.radius = Number(ballRadiusInput.value) / 100;
-  trackingCalibration.azimuthOffsetDeg = Number(azimuthOffsetInput.value);
-
-  ballCenterXValue.textContent = `${Math.round(trackingCalibration.centerX * 100)}%`;
-  ballCenterYValue.textContent = `${Math.round(trackingCalibration.centerY * 100)}%`;
-  ballRadiusValue.textContent = `${Math.round(trackingCalibration.radius * 100)}%`;
-  azimuthOffsetValue.textContent = `${Math.round(trackingCalibration.azimuthOffsetDeg)} deg`;
+function createHiddenVideoElement() {
+  const video = document.createElement("video");
+  video.autoplay = true;
+  video.muted = true;
+  video.playsInline = true;
+  return video;
 }
 
-function updateTrackingReadout(mapped) {
-  if (!mapped) {
-    azimuthReadout.textContent = "--";
-    elevationReadout.textContent = "--";
-    depthReadout.textContent = "--";
-    return;
+function getTrackingSides() {
+  if (!MULTI_CAMERA_CONFIG.singleCameraTestMode.enabled) {
+    return SIDE_KEYS;
   }
 
-  azimuthReadout.textContent = formatDegrees(mapped.azimuth);
-  elevationReadout.textContent = formatDegrees(mapped.elevation);
-  depthReadout.textContent = `${Math.round(mapped.depth * 100)}%`;
-}
-
-function setTrackStatus(text) {
-  if (currentTrackStatus === text) return;
-  currentTrackStatus = text;
-  trackStatus.textContent = text;
-}
-
-function resizeTrackingOverlay() {
-  const width = cameraPreview.videoWidth || 640;
-  const height = cameraPreview.videoHeight || 480;
-
-  if (trackingOverlay.width !== width || trackingOverlay.height !== height) {
-    trackingOverlay.width = width;
-    trackingOverlay.height = height;
+  const requestedSide = MULTI_CAMERA_CONFIG.singleCameraTestMode.side;
+  if (SIDE_KEYS.includes(requestedSide)) {
+    return [requestedSide];
   }
 
-  if (reflectionPreview.width !== REFLECTION_FRAME_SIZE || reflectionPreview.height !== REFLECTION_FRAME_SIZE) {
-    reflectionPreview.width = REFLECTION_FRAME_SIZE;
-    reflectionPreview.height = REFLECTION_FRAME_SIZE;
-  }
-}
-
-function drawTrackingOverlay() {
-  resizeTrackingOverlay();
-
-  const width = trackingOverlay.width;
-  const height = trackingOverlay.height;
-  overlayContext.clearRect(0, 0, width, height);
-
-  const centerX = trackingCalibration.centerX * width;
-  const centerY = trackingCalibration.centerY * height;
-  const radius = trackingCalibration.radius * Math.min(width, height);
-
-  overlayContext.strokeStyle = "rgba(214, 178, 109, 0.95)";
-  overlayContext.lineWidth = 2;
-  overlayContext.beginPath();
-  overlayContext.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  overlayContext.stroke();
-
-  overlayContext.setLineDash([6, 6]);
-  overlayContext.strokeStyle = "rgba(255, 255, 255, 0.35)";
-  overlayContext.beginPath();
-  overlayContext.moveTo(centerX - radius, centerY);
-  overlayContext.lineTo(centerX + radius, centerY);
-  overlayContext.moveTo(centerX, centerY - radius);
-  overlayContext.lineTo(centerX, centerY + radius);
-  overlayContext.stroke();
-  overlayContext.setLineDash([]);
-
-  if (trackingState.reflectionBounds) {
-    const previewLeft = trackingState.reflectionBounds.left * width;
-    const previewTop = trackingState.reflectionBounds.top * height;
-    const previewWidth = trackingState.reflectionBounds.width * width;
-    const previewHeight = trackingState.reflectionBounds.height * height;
-
-    overlayContext.strokeStyle = "rgba(255, 255, 255, 0.2)";
-    overlayContext.lineWidth = 1;
-    overlayContext.strokeRect(previewLeft, previewTop, previewWidth, previewHeight);
-  }
-
-  if (!trackingState.face) return;
-
-  const face = trackingState.face;
-  const left = face.left * width;
-  const top = face.top * height;
-  const boxWidth = face.width * width;
-  const boxHeight = face.height * height;
-  const faceCenterX = face.centerX * width;
-  const faceCenterY = face.centerY * height;
-
-  overlayContext.strokeStyle = trackingState.mapped ? "#6df0c2" : "#ff7d7d";
-  overlayContext.lineWidth = 2;
-  overlayContext.strokeRect(left, top, boxWidth, boxHeight);
-
-  overlayContext.fillStyle = overlayContext.strokeStyle;
-  overlayContext.beginPath();
-  overlayContext.arc(faceCenterX, faceCenterY, 5, 0, Math.PI * 2);
-  overlayContext.fill();
-
-  overlayContext.strokeStyle = "rgba(109, 240, 194, 0.8)";
-  overlayContext.beginPath();
-  overlayContext.moveTo(centerX, centerY);
-  overlayContext.lineTo(faceCenterX, faceCenterY);
-  overlayContext.stroke();
-}
-
-function buildReflectionFrame() {
-  if (!cameraPreview.videoWidth || !cameraPreview.videoHeight) return null;
-
-  const videoWidth = cameraPreview.videoWidth;
-  const videoHeight = cameraPreview.videoHeight;
-  const ballCenterX = trackingCalibration.centerX * videoWidth;
-  const ballCenterY = trackingCalibration.centerY * videoHeight;
-  const ballRadius = trackingCalibration.radius * Math.min(videoWidth, videoHeight);
-
-  const sourceSize = ballRadius * 2;
-  const sourceLeft = THREE.MathUtils.clamp(ballCenterX - ballRadius, 0, Math.max(videoWidth - sourceSize, 0));
-  const sourceTop = THREE.MathUtils.clamp(ballCenterY - ballRadius, 0, Math.max(videoHeight - sourceSize, 0));
-
-  reflectionContext.clearRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  reflectionContext.save();
-  reflectionContext.beginPath();
-  reflectionContext.arc(REFLECTION_FRAME_SIZE / 2, REFLECTION_FRAME_SIZE / 2, REFLECTION_FRAME_SIZE / 2, 0, Math.PI * 2);
-  reflectionContext.clip();
-  reflectionContext.fillStyle = "black";
-  reflectionContext.fillRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  reflectionContext.filter = "contrast(1.35) saturate(0.85) brightness(1.05)";
-  reflectionContext.translate(REFLECTION_FRAME_SIZE, 0);
-  reflectionContext.scale(-1, 1);
-  reflectionContext.drawImage(
-    cameraPreview,
-    sourceLeft,
-    sourceTop,
-    sourceSize,
-    sourceSize,
-    0,
-    0,
-    REFLECTION_FRAME_SIZE,
-    REFLECTION_FRAME_SIZE
-  );
-  reflectionContext.restore();
-
-  reflectionPreviewContext.clearRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  reflectionPreviewContext.drawImage(reflectionCanvas, 0, 0);
-
-  trackingState.reflectionBounds = {
-    left: sourceLeft / videoWidth,
-    top: sourceTop / videoHeight,
-    width: sourceSize / videoWidth,
-    height: sourceSize / videoHeight
-  };
-
-  return {
-    canvas: reflectionCanvas,
-    sourceLeft,
-    sourceTop,
-    sourceSize,
-    videoWidth,
-    videoHeight
-  };
-}
-
-function drawReflectionDetection(face, accepted) {
-  reflectionPreviewContext.clearRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  reflectionPreviewContext.drawImage(reflectionCanvas, 0, 0);
-
-  if (!face) return;
-
-  reflectionPreviewContext.strokeStyle = accepted ? "#6df0c2" : "#ff7d7d";
-  reflectionPreviewContext.lineWidth = 3;
-  reflectionPreviewContext.strokeRect(
-    face.left * REFLECTION_FRAME_SIZE,
-    face.top * REFLECTION_FRAME_SIZE,
-    face.width * REFLECTION_FRAME_SIZE,
-    face.height * REFLECTION_FRAME_SIZE
-  );
-
-  reflectionPreviewContext.fillStyle = reflectionPreviewContext.strokeStyle;
-  reflectionPreviewContext.beginPath();
-  reflectionPreviewContext.arc(
-    face.centerX * REFLECTION_FRAME_SIZE,
-    face.centerY * REFLECTION_FRAME_SIZE,
-    5,
-    0,
-    Math.PI * 2
-  );
-  reflectionPreviewContext.fill();
-}
-
-function isDetectionInsideReflectionBall(face) {
-  const dx = (face.centerX - 0.5) / 0.5;
-  const dy = (face.centerY - 0.5) / 0.5;
-  return ((dx * dx) + (dy * dy)) <= 0.92;
-}
-
-function isPlausibleReflectedFace(face) {
-  const aspect = face.width / Math.max(face.height, 0.0001);
-  return face.size >= 0.06 && face.size <= 0.45 && aspect >= 0.65 && aspect <= 1.55;
-}
-
-function remapReflectionFaceToVideo(face, reflectionFrame) {
-  const centerX = reflectionFrame.sourceLeft + ((1 - face.centerX) * reflectionFrame.sourceSize);
-  const centerY = reflectionFrame.sourceTop + (face.centerY * reflectionFrame.sourceSize);
-  const width = face.width * reflectionFrame.sourceSize;
-  const height = face.height * reflectionFrame.sourceSize;
-
-  return {
-    left: (centerX - (width / 2)) / reflectionFrame.videoWidth,
-    top: (centerY - (height / 2)) / reflectionFrame.videoHeight,
-    width: width / reflectionFrame.videoWidth,
-    height: height / reflectionFrame.videoHeight,
-    centerX: centerX / reflectionFrame.videoWidth,
-    centerY: centerY / reflectionFrame.videoHeight,
-    size: Math.max(width / reflectionFrame.videoWidth, height / reflectionFrame.videoHeight)
-  };
+  console.warn("singleCameraTestMode.side is invalid; defaulting to top");
+  return ["top"];
 }
 
 function getLargestDetection(detections) {
@@ -731,83 +350,55 @@ function getLargestDetection(detections) {
   });
 }
 
-function mapFaceToBall(face) {
-  const sphereX = (face.centerX - trackingCalibration.centerX) / trackingCalibration.radius;
-  const sphereY = (face.centerY - trackingCalibration.centerY) / trackingCalibration.radius;
-  const sphereRadiusSq = (sphereX * sphereX) + (sphereY * sphereY);
+function mapDetectionToTrackingTarget(detection, sideKey) {
+  const width = detection.boundingBox.width;
+  const height = detection.boundingBox.height;
+  const centerX = detection.boundingBox.originX + (width * 0.5);
+  const centerY = detection.boundingBox.originY + (height * 0.5);
 
-  if (sphereRadiusSq > 1) return null;
+  const frameWidth = sideVideo[sideKey].videoWidth;
+  const frameHeight = sideVideo[sideKey].videoHeight;
 
-  const normalZ = Math.sqrt(Math.max(0, 1 - sphereRadiusSq));
-  tempNormal.set(sphereX, -sphereY, normalZ).normalize();
-  tempReflection.copy(cameraIncident).reflect(tempNormal).normalize();
+  if (!frameWidth || !frameHeight) return null;
+
+  const rawNormX = THREE.MathUtils.clamp(((centerX / frameWidth) - 0.5) * 2, -1, 1);
+  const rawNormY = THREE.MathUtils.clamp(((centerY / frameHeight) - 0.5) * 2, -1, 1);
+  const faceSize = Math.max(width / frameWidth, height / frameHeight);
+
+  if (
+    faceSize < MULTI_CAMERA_CONFIG.expectedFaceSize.min
+    || faceSize > MULTI_CAMERA_CONFIG.expectedFaceSize.max
+  ) {
+    return null;
+  }
+
+  const state = sideTrackingState[sideKey];
+  const jitter = MULTI_CAMERA_CONFIG.jitterThreshold;
+
+  const filteredX = Math.abs(rawNormX - state.prevNormX) < jitter ? state.prevNormX : rawNormX;
+  const filteredY = Math.abs(rawNormY - state.prevNormY) < jitter ? state.prevNormY : rawNormY;
+  const filteredSize = Math.abs(faceSize - state.prevFaceSize) < jitter ? state.prevFaceSize : faceSize;
+
+  state.prevNormX = filteredX;
+  state.prevNormY = filteredY;
+  state.prevFaceSize = filteredSize;
+
+  const sideMapping = MULTI_CAMERA_CONFIG.sideMapping[sideKey] || { invertX: false, invertY: false };
+  const mappedX = sideMapping.invertX ? -filteredX : filteredX;
+  const mappedY = sideMapping.invertY ? -filteredY : filteredY;
+
+  const depthNorm = THREE.MathUtils.clamp(
+    (filteredSize - MULTI_CAMERA_CONFIG.expectedFaceSize.min)
+    / Math.max(MULTI_CAMERA_CONFIG.expectedFaceSize.max - MULTI_CAMERA_CONFIG.expectedFaceSize.min, 0.0001),
+    0,
+    1
+  );
 
   return {
-    azimuth: normalizeAngle(
-      Math.atan2(tempReflection.x, tempReflection.y)
-      + THREE.MathUtils.degToRad(trackingCalibration.azimuthOffsetDeg)
-    ),
-    elevation: Math.asin(THREE.MathUtils.clamp(tempReflection.z, -1, 1)),
-    depth: THREE.MathUtils.clamp(face.size / (trackingCalibration.radius * 2.1), 0, 1)
+    rotX: THREE.MathUtils.clamp(-mappedY * MULTI_CAMERA_CONFIG.rotGainX, -0.65, 0.65),
+    rotY: THREE.MathUtils.clamp(mappedX * MULTI_CAMERA_CONFIG.rotGainY, -0.65, 0.65),
+    depthOffset: THREE.MathUtils.lerp(MULTI_CAMERA_CONFIG.depthFarOffset, MULTI_CAMERA_CONFIG.depthNearOffset, depthNorm)
   };
-}
-
-function applyTrackingResult(result, reflectionFrame) {
-  const detection = getLargestDetection(result?.detections);
-
-  if (!detection || !reflectionFrame) {
-    trackingState.face = null;
-    trackingState.sourceFace = null;
-    trackingState.mapped = null;
-    updateTrackingReadout(null);
-    setTrackStatus("Chrome ball live - no reflected face detected");
-    drawTrackingOverlay();
-    return;
-  }
-
-  const box = detection.boundingBox;
-
-  const reflectionFace = {
-    left: box.originX / REFLECTION_FRAME_SIZE,
-    top: box.originY / REFLECTION_FRAME_SIZE,
-    width: box.width / REFLECTION_FRAME_SIZE,
-    height: box.height / REFLECTION_FRAME_SIZE,
-    centerX: (box.originX + (box.width / 2)) / REFLECTION_FRAME_SIZE,
-    centerY: (box.originY + (box.height / 2)) / REFLECTION_FRAME_SIZE,
-    size: Math.max(box.width / REFLECTION_FRAME_SIZE, box.height / REFLECTION_FRAME_SIZE)
-  };
-
-  if (!isDetectionInsideReflectionBall(reflectionFace) || !isPlausibleReflectedFace(reflectionFace)) {
-    trackingState.face = null;
-    trackingState.sourceFace = null;
-    trackingState.mapped = null;
-    updateTrackingReadout(null);
-    drawReflectionDetection(reflectionFace, false);
-    setTrackStatus("Reflection crop live - detection does not look like a reflected face");
-    drawTrackingOverlay();
-    return;
-  }
-
-  const face = remapReflectionFaceToVideo(reflectionFace, reflectionFrame);
-
-  trackingState.sourceFace = reflectionFace;
-  trackingState.face = face;
-  trackingState.mapped = mapFaceToBall(face);
-  drawReflectionDetection(reflectionFace, Boolean(trackingState.mapped));
-  updateTrackingReadout(trackingState.mapped);
-
-  if (!trackingState.mapped) {
-    setTrackStatus("Reflected face found - move it deeper into the chrome ball mask");
-    drawTrackingOverlay();
-    return;
-  }
-
-  targetY = trackingState.mapped.azimuth * 0.9;
-  targetX = THREE.MathUtils.clamp(trackingState.mapped.elevation * -0.65, -0.95, 0.95);
-  targetDepthOffset = THREE.MathUtils.lerp(0.22, -0.12, trackingState.mapped.depth);
-
-  setTrackStatus("Chrome ball reflection tracking active");
-  drawTrackingOverlay();
 }
 
 async function ensureFaceDetector() {
@@ -822,151 +413,194 @@ async function ensureFaceDetector() {
       modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite"
     },
     runningMode: "VIDEO",
-    minDetectionConfidence: 0.45
+    minDetectionConfidence: MULTI_CAMERA_CONFIG.minDetectionConfidence
   });
 
   return faceDetector;
 }
 
-async function getTrackingStream() {
-  try {
-    return await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width: { ideal: 640 },
-        height: { ideal: 480 }
-      },
-      audio: false
-    });
-  } catch {
-    return navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 640 },
-        height: { ideal: 480 }
-      },
-      audio: false
-    });
-  }
+async function enumerateVideoInputs() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter((device) => device.kind === "videoinput");
 }
 
-function stopChromeTracking() {
-  chromeTrackingActive = false;
+async function openCameraForSide(sideKey, fallbackDevice) {
+  const configuredDeviceId = MULTI_CAMERA_CONFIG.cameraDeviceIdsBySide[sideKey] || "";
+  const selectedDeviceId = configuredDeviceId || fallbackDevice?.deviceId;
+
+  const constraints = {
+    video: {
+      width: { ideal: 640 },
+      height: { ideal: 480 },
+      frameRate: { ideal: 30 }
+    },
+    audio: false
+  };
+
+  if (selectedDeviceId) {
+    constraints.video.deviceId = { exact: selectedDeviceId };
+  }
+
+  const stream = await navigator.mediaDevices.getUserMedia(constraints);
+  const video = createHiddenVideoElement();
+  video.srcObject = stream;
+  await video.play();
+
+  sideStream[sideKey] = stream;
+  sideVideo[sideKey] = video;
+  setSideStatus(sideKey, "camera live");
+}
+
+function stopMultiCameraTracking() {
+  multiCameraTrackingActive = false;
 
   if (trackingLoopId !== null) {
     cancelAnimationFrame(trackingLoopId);
     trackingLoopId = null;
   }
 
-  if (trackingStream) {
-    trackingStream.getTracks().forEach((track) => track.stop());
-    trackingStream = null;
+  for (const sideKey of SIDE_KEYS) {
+    const stream = sideStream[sideKey];
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+      sideStream[sideKey] = null;
+    }
+    sideVideo[sideKey] = null;
   }
-
-  cameraPreview.srcObject = null;
-  trackingState.face = null;
-  trackingState.sourceFace = null;
-  trackingState.mapped = null;
-  trackingState.reflectionBounds = null;
-  targetDepthOffset = 0;
-  updateTrackingReadout(null);
-  reflectionContext.clearRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  reflectionPreviewContext.clearRect(0, 0, REFLECTION_FRAME_SIZE, REFLECTION_FRAME_SIZE);
-  drawTrackingOverlay();
-  setTrackStatus("Tracking: controller input");
-  setButtonState();
 }
 
 function processTrackingFrame() {
-  if (!chromeTrackingActive || !faceDetector) return;
+  if (!multiCameraTrackingActive || !faceDetector) return;
+
   const now = performance.now();
 
-  if (cameraPreview.readyState >= 2 && (now - lastDetectTime) >= DETECT_INTERVAL_MS) {
-    lastDetectTime = now;
-    const reflectionFrame = buildReflectionFrame();
-    applyTrackingResult(
-      reflectionFrame ? faceDetector.detectForVideo(reflectionFrame.canvas, now) : null,
-      reflectionFrame
-    );
+  for (const sideKey of SIDE_KEYS) {
+    const currentVideo = sideVideo[sideKey];
+    const state = sideTrackingState[sideKey];
+
+    if (!currentVideo || currentVideo.readyState < 2) {
+      state.hasFace = false;
+      continue;
+    }
+
+    if ((now - sideLastDetectTime[sideKey]) < MULTI_CAMERA_CONFIG.detectIntervalMs) {
+      continue;
+    }
+
+    sideLastDetectTime[sideKey] = now;
+    const result = faceDetector.detectForVideo(currentVideo, now);
+    const largest = getLargestDetection(result?.detections);
+
+    if (!largest) {
+      if ((now - state.lastFaceTime) > MULTI_CAMERA_CONFIG.faceLostGraceMs) {
+        state.hasFace = false;
+      }
+      continue;
+    }
+
+    const mapped = mapDetectionToTrackingTarget(largest, sideKey);
+    if (!mapped) {
+      if ((now - state.lastFaceTime) > MULTI_CAMERA_CONFIG.faceLostGraceMs) {
+        state.hasFace = false;
+      }
+      continue;
+    }
+
+    state.hasFace = true;
+    state.lastFaceTime = now;
+    state.targetRotX = mapped.rotX;
+    state.targetRotY = mapped.rotY;
+    state.targetDepthOffset = mapped.depthOffset;
   }
 
   trackingLoopId = requestAnimationFrame(processTrackingFrame);
 }
 
-async function startChromeTracking() {
-  if (chromeTrackingActive) return;
+async function startMultiCameraTracking() {
+  if (multiCameraTrackingActive) return;
 
   try {
-    setTrackStatus("Starting chrome-ball tracking...");
     await ensureFaceDetector();
+    const videoInputs = await enumerateVideoInputs();
+    const trackingSides = getTrackingSides();
 
-    trackingStream = await getTrackingStream();
-    cameraPreview.srcObject = trackingStream;
-    await cameraPreview.play();
+    if (videoInputs.length < 1) {
+      throw new Error("No video inputs found");
+    }
 
-    chromeTrackingActive = true;
-    lastDetectTime = 0;
-    setButtonState();
-    drawTrackingOverlay();
-    setTrackStatus("Chrome ball live - looking for a face");
+    for (let index = 0; index < trackingSides.length; index += 1) {
+      const sideKey = trackingSides[index];
+      const fallbackDevice = videoInputs[index] || videoInputs[videoInputs.length - 1];
+      await openCameraForSide(sideKey, fallbackDevice);
+      sideLastDetectTime[sideKey] = 0;
+    }
+
+    multiCameraTrackingActive = true;
     processTrackingFrame();
+    console.info(`${trackingSides.length}-camera tracking active (${trackingSides.join(", ")})`);
   } catch (error) {
-    console.error("Failed to start chrome-ball tracking", error);
-    stopChromeTracking();
-    setTrackStatus("Camera unavailable - using controller input");
+    console.error("Failed to start 4-camera tracking", error);
+    stopMultiCameraTracking();
   }
 }
 
-syncCalibrationLabels();
-for (const input of [ballCenterXInput, ballCenterYInput, ballRadiusInput, azimuthOffsetInput]) {
-  input.addEventListener("input", () => {
-    syncCalibrationLabels();
-    drawTrackingOverlay();
-  });
-}
-
-startTrackingBtn.addEventListener("click", startChromeTracking);
-stopTrackingBtn.addEventListener("click", stopChromeTracking);
-setButtonState();
-drawTrackingOverlay();
-
 window.addEventListener("beforeunload", () => {
-  stopChromeTracking();
+  stopMultiCameraTracking();
 });
 
-startChromeTracking();
+if (MULTI_CAMERA_CONFIG.autoStart) {
+  startMultiCameraTracking();
+}
 
 function render() {
-  rotX += (targetX - rotX) * 0.18;
-  rotY = smoothAngle(rotY, targetY, 0.18);
-  viewerDepthOffset += (targetDepthOffset - viewerDepthOffset) * 0.16;
-
-  const activeCameraDist = cameraDist * (1 + viewerDepthOffset);
-
-  const poses = {
-    top: [0, centerY, activeCameraDist],
-    bottom: [0, centerY, -activeCameraDist],
-    left: [-activeCameraDist, centerY, 0],
-    right: [activeCameraDist, centerY, 0]
-  };
+  fallbackRotX += (fallbackTargetX - fallbackRotX) * MULTI_CAMERA_CONFIG.smoothingRotation;
+  fallbackRotY = smoothAngle(fallbackRotY, fallbackTargetY, MULTI_CAMERA_CONFIG.smoothingRotation);
 
   for (const key of Object.keys(views)) {
+    const sideState = sideTrackingState[key];
     const { cam, renderer } = views[key];
+    const hasPerSideTracking = multiCameraTrackingActive && sideState.hasFace;
+
+    const targetRotX = hasPerSideTracking ? sideState.targetRotX : fallbackRotX;
+    const targetRotY = hasPerSideTracking ? sideState.targetRotY : fallbackRotY;
+    const targetDepth = hasPerSideTracking ? sideState.targetDepthOffset : 0;
+
+    sideState.rotX += (targetRotX - sideState.rotX) * MULTI_CAMERA_CONFIG.smoothingRotation;
+    sideState.rotY = smoothAngle(sideState.rotY, targetRotY, MULTI_CAMERA_CONFIG.smoothingRotation);
+    sideState.depthOffset += (targetDepth - sideState.depthOffset) * MULTI_CAMERA_CONFIG.smoothingDepth;
+
+    const activeCameraDist = cameraDist * (1 + sideState.depthOffset);
+    const poses = {
+      top: [0, centerY, activeCameraDist],
+      bottom: [0, centerY, -activeCameraDist],
+      left: [-activeCameraDist, centerY, 0],
+      right: [activeCameraDist, centerY, 0]
+    };
+
     const [x, y, z] = poses[key];
     cam.position.set(x, y, z);
     cam.lookAt(0, centerY, 0);
 
+    const sp = sidePivots[key];
+    sp.visible = true;
+    pivot.visible = false;
+
     if (key === "top" || key === "bottom") {
-      pivot.rotation.x = rotX;
-      pivot.rotation.y = rotY;
-      pivot.rotation.z = 0;
+      sp.rotation.x = sideState.rotX;
+      sp.rotation.y = sideState.rotY;
+      sp.rotation.z = 0;
     } else if (key === "left") {
-      pivot.rotation.z = rotX;
-      pivot.rotation.y = rotY;
-      pivot.rotation.x = 0;
+      sp.rotation.z = sideState.rotX;
+      sp.rotation.y = sideState.rotY;
+      sp.rotation.x = 0;
     } else {
-      pivot.rotation.z = -rotX;
-      pivot.rotation.y = rotY;
-      pivot.rotation.x = 0;
+      sp.rotation.z = -sideState.rotX;
+      sp.rotation.y = sideState.rotY;
+      sp.rotation.x = 0;
+    }
+
+    for (const otherKey of SIDE_KEYS) {
+      if (otherKey !== key) sidePivots[otherKey].visible = false;
     }
 
     renderer.render(scene, cam);
